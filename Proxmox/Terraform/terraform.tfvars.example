@@ -1,0 +1,27 @@
+proxmox_api_url          = "https://proxmox.example.com:8006/api2/json"
+proxmox_api_token_id     = "user@pam!tokenname"
+proxmox_api_token_secret = "your-api-token-secret"
+pm_tls_insecure          = true
+proxmox_node             = "pve"
+proxmox_host             = "proxmox.example.com"
+proxmox_ssh_user         = "root"
+proxmox_ssh_password     = "your-ssh-password"
+
+# Template information
+template_name            = "ubuntu-24-04-template"
+
+# VM configuration
+vm_name_prefix           = "ubuntu24"
+domain                   = "example.com"
+vm_count                 = 2
+cores                    = 2
+memory                   = 4096
+disk_size                = "30G"
+storage_pool             = "local-lvm"
+vm_network_bridge        = "vmbr0"
+
+# Cloud-init configuration
+ci_user                  = "ubuntu"
+ci_password              = "your-secure-password"
+ssh_public_key_path      = "~/.ssh/id_rsa.pub"
+ssh_private_key_path     = "~/.ssh/id_rsa"

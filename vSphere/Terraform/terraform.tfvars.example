@@ -1,0 +1,25 @@
+# vSphere connection
+vsphere_user             = "administrator@vsphere.local"
+vsphere_password         = "your-vcenter-password"
+vsphere_server           = "vcenter.example.com"
+allow_unverified_ssl     = true
+
+# vSphere environment
+datacenter               = "Datacenter"
+datastore                = "datastore1"
+cluster                  = "Cluster"
+network                  = "VM Network"
+template_name            = "ubuntu-24-04-template"
+vm_folder                = "Ubuntu-VMs"
+
+# VM configuration
+vm_name_prefix           = "ubuntu24"
+domain                   = "example.com"
+vm_count                 = 2
+num_cpus                 = 2
+memory                   = 4096
+disk_size                = 40 # GB (0 means use template's disk size)
+
+# SSH connection for provisioning
+ssh_username             = "ubuntu"
+ssh_private_key_path     = "~/.ssh/id_rsa"
