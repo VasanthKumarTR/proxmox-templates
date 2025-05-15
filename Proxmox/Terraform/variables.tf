@@ -1,129 +1,62 @@
 variable "proxmox_api_url" {
+  description = "Proxmox API URL"
   type        = string
-  description = "The URL of the Proxmox API (e.g., https://proxmox.example.com:8006/api2/json)"
 }
 
 variable "proxmox_api_token_id" {
+  description = "Proxmox API token ID"
   type        = string
-  description = "Proxmox API token ID (e.g., user@pam!tokenname)"
 }
 
 variable "proxmox_api_token_secret" {
-  type        = string
-  sensitive   = true
   description = "Proxmox API token secret"
-}
-
-variable "pm_tls_insecure" {
-  type        = bool
-  default     = true
-  description = "Set to true to ignore certificate errors"
-}
-
-variable "proxmox_node" {
-  type        = string
-  description = "The name of the Proxmox node to deploy VMs on"
-}
-
-variable "proxmox_host" {
-  type        = string
-  description = "The hostname or IP address of the Proxmox server for SSH connections"
-}
-
-variable "proxmox_ssh_user" {
-  type        = string
-  description = "SSH username for the Proxmox server"
-}
-
-variable "proxmox_ssh_password" {
   type        = string
   sensitive   = true
-  description = "SSH password for the Proxmox server"
 }
 
-variable "template_name" {
+variable "vm_name" {
+  description = "Name of the VM"
   type        = string
-  description = "The name of the VM template to clone from"
+  default     = "ubuntu-vm"
 }
 
-variable "vm_name_prefix" {
+variable "target_node" {
+  description = "Proxmox node to create the VM on"
   type        = string
-  default     = "ubuntu24"
-  description = "Prefix for VM names"
 }
 
-variable "domain" {
-  type        = string
-  default     = "local"
-  description = "Domain name for the VMs"
-}
-
-variable "vm_count" {
-  type        = number
-  default     = 1
-  description = "Number of VMs to create"
-}
-
-variable "full_clone" {
-  type        = bool
-  default     = true
-  description = "Create a full clone instead of a linked clone"
-}
-
-variable "cores" {
+variable "vm_cores" {
+  description = "Number of CPU cores"
   type        = number
   default     = 2
-  description = "Number of CPU cores for the VM"
 }
 
-variable "sockets" {
-  type        = number
-  default     = 1
-  description = "Number of CPU sockets for the VM"
-}
-
-variable "memory" {
+variable "vm_memory" {
+  description = "Amount of memory in MB"
   type        = number
   default     = 2048
-  description = "Memory in MB for the VM"
 }
 
 variable "disk_size" {
+  description = "Disk size for the VM (in GB)"
   type        = string
-  default     = "20G"
-  description = "Disk size for the VM"
+  default     = "20"
 }
 
-variable "storage_pool" {
+variable "disk_storage" {
+  description = "Storage location for the VM disk"
   type        = string
   default     = "local-lvm"
-  description = "Storage pool to place VM disks"
 }
 
-variable "vm_network_bridge" {
+variable "network_bridge" {
+  description = "Network bridge to use"
   type        = string
   default     = "vmbr0"
-  description = "Bridge to use for VM networking"
 }
 
-variable "ci_user" {
+variable "ssh_public_keys" {
+  description = "SSH public keys to add to the VM"
   type        = string
-  default     = "ubuntu"
-  description = "Username to create via cloud-init"
-}
-
-variable "ci_password" {
-  type        = string
-  sensitive   = true
-  description = "Password for the cloud-init user"
-}
-
-variable "ssh_public_key_path" {
-  type        = string
-  description = "Path to SSH public key file to authorize for cloud-init user"
-}
-
-variable "ssh_private_key_path" {
-  type        = string
-  description = "Path to SSH private key file for accessing the created VMs"
+  default     = ""
 }

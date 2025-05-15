@@ -52,3 +52,7 @@ id_rsa.pub
 .idea/
 *.swp
 *.swo
+
+# Exclude secrets file
+secrets.pkrvars.hcl
+screenshots/

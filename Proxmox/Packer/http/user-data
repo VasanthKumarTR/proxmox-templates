@@ -7,23 +7,41 @@ autoinstall:
   ssh:
     install-server: true
     allow-pw: true
+    disable_root: true
+    ssh_quiet_keygen: true
+    allow_public_ssh_keys: true
+  network:
+    network:
+      version: 2
+      ethernets:
+        any:
+          match:
+            name: en*
+          dhcp4: true
+          dhcp6: false
   packages:
     - qemu-guest-agent
-    - curl
-    - wget
-    - vim
+    - sudo
   storage:
     layout:
       name: direct
     swap:
       size: 0
   user-data:
-    package_upgrade: true
+    package_upgrade: false
     timezone: UTC
     users:
       - name: ubuntu
-        passwd: $6$xyz$74AlwKA3Z5n2L6ujMzm/zZfcUid8tcQpX0xCJnJ2ZXJvL3.s/X4Jd7OZ7hjSGPYB.E0SMW8l1pwYTXuGA/0VF/
-        groups: [adm, cdrom, dip, plugdev, lxd, sudo]
+        groups: [adm, sudo]
         lock-passwd: false
         sudo: ALL=(ALL) NOPASSWD:ALL
         shell: /bin/bash
+        passwd: "$6$xyz$rfUoxhnMNc3wH8l7RJ01MgcxV5Oq.USZ4xrwy0Hc7rcEONrfBG6q5q1WYgON0aRnJj0BQCpxCPoSk3MeKCVOy."
+  late-commands:
+    - echo 'ubuntu ALL=(ALL) NOPASSWD:ALL' > /target/etc/sudoers.d/ubuntu
+    - chmod 440 /target/etc/sudoers.d/ubuntu
+    - |
+      if [ -d /sys/firmware/efi ]; then
+        apt-get install -y efibootmgr
+        efibootmgr -o $(efibootmgr | perl -n -e '/Boot(.+)\* Ubuntu/ && print $1')
+      fi 

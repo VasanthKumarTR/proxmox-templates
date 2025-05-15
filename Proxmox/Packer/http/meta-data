@@ -1,3 +1,2 @@
-#cloud-config
-autoinstall:
-  version: 1
+instance-id: ubuntu-server-2404
+local-hostname: ubuntu-template

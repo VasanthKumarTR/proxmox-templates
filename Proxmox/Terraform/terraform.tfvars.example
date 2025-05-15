@@ -1,27 +1,22 @@
-proxmox_api_url          = "https://proxmox.example.com:8006/api2/json"
-proxmox_api_token_id     = "user@pam!tokenname"
-proxmox_api_token_secret = "your-api-token-secret"
-pm_tls_insecure          = true
-proxmox_node             = "pve"
-proxmox_host             = "proxmox.example.com"
-proxmox_ssh_user         = "root"
-proxmox_ssh_password     = "your-ssh-password"
+# Proxmox API connection details
+proxmox_api_url          = "https://proxmox.example.com:8006"
+proxmox_api_token_id     = "root@pam!terraform"
+proxmox_api_token_secret = "00000000-0000-0000-0000-000000000000"
 
-# Template information
-template_name            = "ubuntu-24-04-template"
+# VM settings
+vm_name     = "ubuntu-24-04-vm"
+target_node = "pve"  # Replace with your Proxmox node name
 
-# VM configuration
-vm_name_prefix           = "ubuntu24"
-domain                   = "example.com"
-vm_count                 = 2
-cores                    = 2
-memory                   = 4096
-disk_size                = "30G"
-storage_pool             = "local-lvm"
-vm_network_bridge        = "vmbr0"
+# VM resources
+vm_cores  = 2
+vm_memory = 4096  # 4GB RAM
 
-# Cloud-init configuration
-ci_user                  = "ubuntu"
-ci_password              = "your-secure-password"
-ssh_public_key_path      = "~/.ssh/id_rsa.pub"
-ssh_private_key_path     = "~/.ssh/id_rsa"
+# Storage settings
+disk_size    = "40"
+disk_storage = "local-lvm"
+
+# Network settings
+network_bridge = "vmbr0"
+
+# SSH public keys for cloud-init
+ssh_public_keys = "ssh-rsa AAAAB3Nz...your-ssh-public-key" 
