@@ -7,181 +7,302 @@ packer {
   }
 }
 
-variable "vcenter_server" {
-  type        = string
-  description = "vCenter server hostname or IP address"
-}
-
+# vCenter Credentials
 variable "vcenter_username" {
   type        = string
-  description = "vCenter username"
+  description = "The username for authenticating to vCenter."
+  default     = ""
+  sensitive   = true
 }
 
 variable "vcenter_password" {
   type        = string
+  description = "The plaintext password for authenticating to vCenter."
+  default     = ""
   sensitive   = true
-  description = "vCenter password"
-}
-
-variable "vcenter_insecure_connection" {
-  type        = bool
-  default     = true
-  description = "If true, does not validate the vCenter server's TLS certificate"
-}
-
-variable "datacenter" {
-  type        = string
-  description = "vSphere datacenter name"
-}
-
-variable "cluster" {
-  type        = string
-  description = "vSphere cluster name"
-}
-
-variable "datastore" {
-  type        = string
-  description = "vSphere datastore name"
-}
-
-variable "folder" {
-  type        = string
-  description = "VM folder to create the VM in"
-}
-
-variable "network" {
-  type        = string
-  description = "VM network name"
-}
-
-variable "host" {
-  type        = string
-  description = "ESXi host to build on"
-}
-
-variable "iso_path" {
-  type        = string
-  default     = "[datastore1] ISO/ubuntu-24.04-live-server-amd64.iso"
-  description = "Path to Ubuntu ISO file on datastore"
-}
-
-variable "iso_url" {
-  type        = string
-  default     = "https://releases.ubuntu.com/24.04/ubuntu-24.04-live-server-amd64.iso"
-  description = "URL to download the Ubuntu ISO from if not present on datastore"
-}
-
-variable "iso_checksum" {
-  type        = string
-  default     = "sha256:45f873de9f8cb637345d6e66a583762730bbcb25a4f0c02b3af6016dad78e359"
-  description = "Checksum of the ISO file"
-}
-
-variable "vm_name" {
-  type        = string
-  default     = "ubuntu-24-04-template"
-  description = "Name of the VM template"
-}
-
-variable "vm_cpu_num" {
-  type        = number
-  default     = 2
-  description = "Number of CPU cores for the VM"
-}
-
-variable "vm_mem_size" {
-  type        = number
-  default     = 2048
-  description = "Memory size in MB for the VM"
-}
-
-variable "vm_disk_size" {
-  type        = number
-  default     = 20000
-  description = "Disk size in MB for the VM"
 }
 
 variable "ssh_username" {
   type        = string
+  description = "The username to use to authenticate over SSH."
   default     = "ubuntu"
-  description = "Username to use for SSH access during build"
+  sensitive   = true
 }
 
 variable "ssh_password" {
   type        = string
+  description = "The plaintext password to use to authenticate over SSH."
   default     = "ubuntu"
   sensitive   = true
-  description = "Password to use for SSH access during build"
 }
 
-source "vsphere-iso" "ubuntu_2404" {
-  vcenter_server      = var.vcenter_server
-  username            = var.vcenter_username
-  password            = var.vcenter_password
-  insecure_connection = var.vcenter_insecure_connection
+# vSphere Objects
+variable "vcenter_insecure_connection" {
+  type        = bool
+  description = "If true, does not validate the vCenter server's TLS certificate."
+  default     = true
+}
 
-  datacenter = var.datacenter
-  cluster    = var.cluster
-  datastore  = var.datastore
-  folder     = var.folder
-  host       = var.host
+variable "vcenter_server" {
+  type        = string
+  description = "The fully qualified domain name or IP address of the vCenter Server instance."
+  default     = ""
+}
 
-  vm_name             = var.vm_name
-  convert_to_template = true
+variable "vcenter_datacenter" {
+  type        = string
+  description = "Required if there is more than one datacenter in vCenter."
+  default     = ""
+}
 
-  notes         = "Ubuntu 24.04 Template built by Packer on ${timestamp()}"
-  guest_os_type = "ubuntu64Guest"
+variable "vcenter_host" {
+  type        = string
+  description = "The ESXi host where target VM is created."
+  default     = ""
+}
 
-  CPUs     = var.vm_cpu_num
-  RAM      = var.vm_mem_size
-  firmware = "efi"
+variable "vcenter_cluster" {
+  type        = string
+  description = "The cluster where target VM is created."
+  default     = ""
+}
 
-  disk_controller_type = ["pvscsi"]
-  storage {
-    disk_size             = var.vm_disk_size
-    disk_thin_provisioned = true
-  }
+variable "vcenter_datastore" {
+  type        = string
+  description = "Required for clusters, or if the target host has multiple datastores."
+  default     = ""
+}
 
-  network_adapters {
-    network      = var.network
-    network_card = "vmxnet3"
-  }
+variable "vcenter_network" {
+  type        = string
+  description = "The network segment or port group name to which the primary virtual network adapter will be connected."
+  default     = ""
+}
 
-  iso_paths    = [var.iso_path]
-  iso_url      = var.iso_url
-  iso_checksum = var.iso_checksum
+variable "vcenter_folder" {
+  type        = string
+  description = "The VM folder in which the VM template will be created."
+  default     = ""
+}
 
-  http_directory = "http"
+# ISO Objects
+variable "iso_path" {
+  type        = string
+  description = "The path on the source vSphere datastore for ISO images."
+  default     = ""
+}
 
-  boot_wait = "5s"
-  boot_command = [
-    "c<wait>",
-    "linux /casper/vmlinuz --- autoinstall ds=\"nocloud-net;seedfrom=http://{{ .HTTPIP }}:{{ .HTTPPort }}/\"",
-    "<enter><wait>",
-    "initrd /casper/initrd",
-    "<enter><wait>",
-    "boot",
-    "<enter>"
-  ]
+variable "iso_url" {
+  type        = string
+  description = "The url to retrieve the iso image"
+  default     = "https://releases.ubuntu.com/24.04/ubuntu-24.04.2-live-server-amd64.iso"
+}
 
-  ssh_username = var.ssh_username
-  ssh_password = var.ssh_password
-  ssh_timeout  = "30m"
+variable "iso_file" {
+  type        = string
+  description = "The file name of the guest operating system ISO image installation media."
+  default     = ""
+}
 
-  cd_files = []
+variable "iso_checksum" {
+  type        = string
+  description = "The checksum of the ISO image."
+  default     = "d6dab0c3a657988501b4bd76f1297c053df710e06e0c3aece60dead24f270b4d"
+}
 
-  shutdown_command = "sudo -S shutdown -P now"
-  shutdown_timeout = "15m"
+variable "iso_checksum_type" {
+  type        = string
+  description = "The checksum type of the ISO image. Ex: sha256"
+  default     = "sha256"
+}
 
-  ip_wait_timeout      = "1h"
+# HTTP Endpoint
+variable "http_directory" {
+  type        = string
+  description = "Directory of config files(user-data, meta-data)."
+  default     = "http"
+}
+
+# Virtual Machine Settings
+variable "vm_name" {
+  type        = string
+  description = "The template vm name"
+  default     = "Ubuntu-2404-Template"
+}
+
+variable "vm_guest_os_type" {
+  type        = string
+  description = "The guest operating system type, also know as guestid."
+  default     = "ubuntu64Guest"
+}
+
+variable "vm_version" {
+  type        = number
+  description = "The VM virtual hardware version."
+  default     = 19
+}
+
+variable "vm_firmware" {
+  type        = string
+  description = "The virtual machine firmware. (e.g. 'bios' or 'efi')"
+  default     = "efi"
+}
+
+variable "vm_cdrom_type" {
+  type        = string
+  description = "The virtual machine CD-ROM type."
+  default     = "sata"
+}
+
+variable "vm_cpu_sockets" {
+  type        = number
+  description = "The number of virtual CPUs sockets."
+  default     = 1
+}
+
+variable "vm_cpu_cores" {
+  type        = number
+  description = "The number of virtual CPUs cores per socket."
+  default     = 2
+}
+
+variable "vm_mem_size" {
+  type        = number
+  description = "The size for the virtual memory in MB."
+  default     = 2048
+}
+
+variable "vm_disk_size" {
+  type        = number
+  description = "The size for the virtual disk in MB."
+  default     = 20480
+}
+
+variable "thin_provision" {
+  type        = bool
+  description = "Thin or Thick provisioning of the disk"
+  default     = true
+}
+
+variable "disk_eagerly_scrub" {
+  type        = bool
+  description = "eagrly scrub zeros"
+  default     = false
+}
+
+variable "vm_disk_controller_type" {
+  type        = list(string)
+  description = "The virtual disk controller types in sequence."
+  default     = ["pvscsi"]
+}
+
+variable "vm_network_card" {
+  type        = string
+  description = "The virtual network card type."
+  default     = "vmxnet3"
+}
+
+variable "vm_boot_wait" {
+  type        = string
+  description = "The time to wait before boot."
+  default     = "10s"
+}
+
+variable "shell_scripts" {
+  type        = list(string)
+  description = "A list of scripts."
+  default     = []
+}
+
+##################################################################################
+# LOCALS
+##################################################################################
+
+locals {
+  buildtime = formatdate("YYYY-MM-DD hh:mm ZZZ", timestamp())
+}
+
+##################################################################################
+# SOURCE
+##################################################################################
+
+source "vsphere-iso" "ubuntu-2404" {
+  vcenter_server       = var.vcenter_server
+  username             = var.vcenter_username
+  password             = var.vcenter_password
+  datacenter           = var.vcenter_datacenter
+  datastore            = var.vcenter_datastore
+  host                 = var.vcenter_host
+  cluster              = var.vcenter_cluster
+  folder               = var.vcenter_folder
+  insecure_connection  = var.vcenter_insecure_connection
   tools_upgrade_policy = true
   remove_cdrom         = true
+  convert_to_template  = true
+  guest_os_type        = var.vm_guest_os_type
+  vm_version           = var.vm_version
+  notes                = "Ubuntu 24.04 Template built by Packer on ${local.buildtime}"
+  vm_name              = var.vm_name
+  firmware             = var.vm_firmware
+  CPUs                 = var.vm_cpu_sockets
+  cpu_cores            = var.vm_cpu_cores
+  CPU_hot_plug         = false
+  RAM                  = var.vm_mem_size
+  RAM_hot_plug         = false
+  cdrom_type           = var.vm_cdrom_type
+  disk_controller_type = var.vm_disk_controller_type
+  storage {
+    disk_size             = var.vm_disk_size
+    disk_controller_index = 0
+    disk_thin_provisioned = var.thin_provision
+    disk_eagerly_scrub    = var.disk_eagerly_scrub
+  }
+  network_adapters {
+    network      = var.vcenter_network
+    network_card = var.vm_network_card
+  }
+  iso_url      = var.iso_url
+  iso_checksum = "${var.iso_checksum_type}:${var.iso_checksum}"
+
+  # We'll use CD-ROM based cloud-init like in our Proxmox setup
+  cd_files = [
+    "./${var.http_directory}/meta-data",
+    "./${var.http_directory}/user-data"
+  ]
+  cd_label = "cidata"
+
+  boot_order = "disk,cdrom"
+  boot_wait  = var.vm_boot_wait
+
+  # Boot command for Ubuntu 24.04
+  boot_command = [
+    "<esc><wait>",
+    "e<wait>",
+    "<down><down><down><end>",
+    " autoinstall quiet ds=nocloud",
+    "<f10><wait>",
+    "<wait1m>",
+    "yes<enter>"
+  ]
+
+  ip_wait_timeout        = "20m"
+  ssh_password           = var.ssh_password
+  ssh_username           = var.ssh_username
+  ssh_port               = 22
+  ssh_timeout            = "30m"
+  ssh_handshake_attempts = "100"
+  shutdown_command       = "echo '${var.ssh_password}' | sudo -S -E shutdown -P now"
+  shutdown_timeout       = "15m"
 }
 
-build {
-  name    = "ubuntu-server-2404"
-  sources = ["source.vsphere-iso.ubuntu_2404"]
+##################################################################################
+# BUILD
+##################################################################################
 
+build {
+  sources = ["source.vsphere-iso.ubuntu-2404"]
+
+  # Wait for cloud-init to finish and configure VM tools
   provisioner "shell" {
     inline = [
       "while [ ! -f /var/lib/cloud/instance/boot-finished ]; do echo 'Waiting for cloud-init...'; sleep 1; done",
@@ -195,7 +316,7 @@ build {
     ]
   }
 
-  # Install Docker
+  # Install Docker 27.5.1
   provisioner "shell" {
     inline = [
       "echo 'Installing Docker...'",

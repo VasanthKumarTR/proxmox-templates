@@ -1,106 +1,133 @@
-# Ubuntu 24.04 VMs for Proxmox and vSphere
+# Ubuntu 24.04 VM Automation for vSphere and Proxmox
 
-This repository contains Packer templates and Terraform configurations to create Ubuntu 24.04 virtual machines in both Proxmox and vSphere environments.
+This repository contains infrastructure-as-code configurations for automatically building Ubuntu 24.04 VM templates and deploying virtual machines using:
 
-## Overview
+- **vSphere**: VMware's enterprise virtualization platform
+- **Proxmox**: Open-source virtualization platform
 
-This project is organized into two main sections:
+The repository provides a complete workflow for both platforms, from template creation to VM deployment, using Packer and Terraform.
 
-- **Proxmox**: Templates and configurations for Proxmox VE
-- **vSphere**: Templates and configurations for VMware vSphere
+## Repository Structure
 
-Each section contains both Packer templates for creating VM templates and Terraform configurations for deploying VMs from those templates.
+- [`vSphere/`](./vSphere) - VMware vSphere configurations
+  - [`Packer/`](./vSphere/Packer) - Template building with Packer
+  - [`Terraform/`](./vSphere/Terraform) - VM deployment with Terraform
 
-## Requirements
+- [`Proxmox/`](./Proxmox) - Proxmox VE configurations
+  - [`Packer/`](./Proxmox/Packer) - Template building with Packer
+  - [`Terraform/`](./Proxmox/Terraform) - VM deployment with Terraform
 
-- [Packer](https://developer.hashicorp.com/packer/downloads) (>= 1.9.0)
-- [Terraform](https://developer.hashicorp.com/terraform/downloads) (>= 1.7.0)
-- Access to either a Proxmox server or vSphere environment
-- Ubuntu 24.04 ISO (downloaded automatically by Packer)
+## Features
 
-## Workflow
+### Common Features
 
-1. Use Packer to create VM templates in your virtualization platform
-2. Use Terraform to deploy VMs from those templates
+- **Ubuntu 24.04 LTS** template creation and deployment
+- **Cloud-init integration** for first-boot customization
+- **Docker pre-installation** (version 27.5.1)
+- **CD-ROM-based cloud-init** for reliable deployment
+- **SSH key injection** for secure access
+- **Multi-VM deployment** capabilities
+- **Resource customization** (CPU, memory, disk)
 
-## Proxmox
+### vSphere-specific Features
 
-### Creating VM Templates with Packer
+- VMware tools integration
+- vSphere-optimized template
+- Support for vCenter deployment
+- VM folder organization
 
-The Packer configuration for Proxmox will:
+### Proxmox-specific Features
 
-1. Download the Ubuntu 24.04 ISO if not present
-2. Create a new VM in Proxmox
-3. Install Ubuntu with preseed configuration
-4. Install common packages and perform system hardening
-5. Convert the VM to a template
+- Compatibility with Proxmox VE 8.0+
+- Uses BPG Proxmox Terraform provider
+- Serial device configuration for modern Ubuntu compatibility
 
-To build the template:
+## Prerequisites
 
-```bash
-cd Proxmox/Packer
-cp example.pkrvars.hcl local.pkrvars.hcl
-# Edit local.pkrvars.hcl with your Proxmox details
-packer build -var-file=local.pkrvars.hcl .
-```
+### Common Requirements
 
-### Deploying VMs with Terraform
+- [Packer](https://www.packer.io/downloads) (v1.8.0+ for vSphere, v1.12.0+ for Proxmox)
+- [Terraform](https://www.terraform.io/downloads) (v1.0.0+ for vSphere, v1.5.0+ for Proxmox)
+- SSH keypair for VM access
 
-After creating the template with Packer, you can use Terraform to deploy VMs:
+### vSphere Requirements
 
-```bash
-cd Proxmox/Terraform
-cp terraform.tfvars.example terraform.tfvars
-# Edit terraform.tfvars with your configuration
-terraform init
-terraform plan
-terraform apply
-```
+- vSphere environment with vCenter
+- Administrator credentials
+- Network with internet access for ISO download (or pre-uploaded ISO)
 
-## vSphere
+### Proxmox Requirements
 
-### Creating VM Templates with Packer
+- Proxmox VE 8.0+
+- API token with appropriate permissions
+- Ubuntu 24.04 ISO already uploaded to Proxmox storage
 
-The Packer configuration for vSphere will:
+## Quick Start
 
-1. Connect to your vSphere environment
-2. Upload the Ubuntu 24.04 ISO if needed
-3. Create a new VM
-4. Install Ubuntu with automated configuration
-5. Install VM tools and perform system optimization
-6. Convert the VM to a template
+### vSphere Workflow
 
-To build the template:
+1. **Build Template:**
+   ```bash
+   cd vSphere/Packer
+   cp secrets.pkrvars.hcl.example secrets.pkrvars.hcl
+   # Edit secrets.pkrvars.hcl with your vSphere credentials
+   ./build.sh
+   ```
 
-```bash
-cd vSphere/Packer
-cp example.pkrvars.hcl local.pkrvars.hcl
-# Edit local.pkrvars.hcl with your vSphere details
-packer build -var-file=local.pkrvars.hcl .
-```
+2. **Deploy VMs:**
+   ```bash
+   cd ../Terraform
+   cp terraform.tfvars.example terraform.tfvars
+   # Edit terraform.tfvars with your configuration
+   ./build.sh
+   ```
 
-### Deploying VMs with Terraform
+### Proxmox Workflow
 
-After creating the template with Packer, you can use Terraform to deploy VMs:
+1. **Build Template:**
+   ```bash
+   cd Proxmox/Packer
+   cp secrets.pkrvars.hcl.example secrets.pkrvars.hcl
+   # Edit secrets.pkrvars.hcl with your Proxmox credentials
+   ./build.sh
+   ```
 
-```bash
-cd vSphere/Terraform
-cp terraform.tfvars.example terraform.tfvars
-# Edit terraform.tfvars with your configuration
-terraform init
-terraform plan
-terraform apply
-```
+2. **Deploy VMs:**
+   ```bash
+   cd ../Terraform
+   cp terraform.tfvars.example terraform.tfvars
+   # Edit terraform.tfvars with your configuration
+   terraform init
+   terraform plan
+   terraform apply
+   ```
 
-## Customization
+## Documentation
 
-Both the Packer templates and Terraform configurations are designed to be customizable:
+Each component has detailed documentation:
 
-- Modify the Packer HTTP directory files to change installation parameters
-- Adjust VM specifications in both Packer and Terraform configurations
-- Add or modify provisioning scripts to install additional software
-- Customize network configurations to match your environment
+- [vSphere Packer Documentation](./vSphere/Packer/README.md)
+- [vSphere Terraform Documentation](./vSphere/Terraform/README.md)
+- [Proxmox Packer Documentation](./Proxmox/Packer/README.md)
+- [Proxmox Terraform Documentation](./Proxmox/Terraform/README.md)
+
+## Security Notes
+
+- Default username is "ubuntu"
+- Default password is "ubuntu" - change it in production!
+- SSH keys are used for secure authentication
+- API tokens and credentials should be kept secret (never commit to repositories)
+
+## Troubleshooting
+
+Common issues and solutions are documented in each component's README file. General troubleshooting tips:
+
+1. Check your Packer and Terraform versions
+2. Verify credentials and permissions
+3. Ensure network connectivity to download ISO or connect to VMs
+4. Review cloud-init configurations for syntax errors
+5. Check logs for error messages
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.

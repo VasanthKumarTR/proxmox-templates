@@ -27,7 +27,7 @@ For security, sensitive information like passwords is stored in a separate file:
    cp secrets.pkrvars.hcl.example secrets.pkrvars.hcl
    ```
 
-2. Edit `secrets.pkrvars.hcl` with your actual Proxmox password and SSH password.
+2. Edit `secrets.pkrvars.hcl` with your actual Proxmox password and a Proxmox API token.
 
 The `secrets.pkrvars.hcl` file is included in `.gitignore` to prevent accidental commits of sensitive information.
 

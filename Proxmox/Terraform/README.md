@@ -50,34 +50,3 @@ After successful deployment, the VM's IP address will be displayed as an output.
 * A serial device is added to ensure compatibility with modern Ubuntu versions
 * Make sure your Proxmox user has sufficient permissions (see below)
 
-## Required Proxmox Permissions
-
-To use this module, create a role with the following privileges:
-
-```bash
-pveum role add Terraform -privs "Datastore.Allocate \
-  Datastore.AllocateSpace Datastore.AllocateTemplate \
-  Datastore.Audit Pool.Allocate Sys.Audit Sys.Console Sys.Modify \
-  SDN.Use VM.Allocate VM.Audit VM.Clone VM.Config.CDROM \
-  VM.Config.Cloudinit VM.Config.CPU VM.Config.Disk VM.Config.HWType \
-  VM.Config.Memory VM.Config.Network VM.Config.Options VM.Migrate \
-  VM.Monitor VM.PowerMgmt User.Modify"
-```
-
-Then create a user, add it to a group with these permissions, and generate an API token:
-
-```bash
-# create group
-pveum group add terraform-users
-
-# add permissions
-pveum acl modify /sdn/zones -group terraform-users -role Terraform
-pveum acl modify /storage -group terraform-users -role Terraform
-pveum acl modify /vms -group terraform-users -role Terraform
-
-# create user 'terraform'
-pveum useradd terraform@pve -groups terraform-users
-
-# generate a token
-pveum user token add terraform@pve token -privsep 0
-```
