@@ -98,14 +98,15 @@ source "proxmox-iso" "ubuntu-2404" {
   # VM ISO Settings
 
   boot_iso {
-    type         = "scsi"
-    iso_file     = var.iso_file
-    unmount      = true
-    iso_checksum = var.iso_checksum
+    type              = "ide"
+    iso_file          = var.iso_file
+    unmount           = true
+    keep_cdrom_device = false
+    iso_checksum      = var.iso_checksum
   }
 
-  # Set explicit boot order - boot from installation ISO first
-  boot = "order=ide2;scsi0;net0"
+  # Explicitly set boot order to prefer scsi0 (installed disk) over ide devices
+  boot = "order=scsi0;net0;ide0"
 
   # VM System Settings
   qemu_agent = true
@@ -120,6 +121,7 @@ source "proxmox-iso" "ubuntu-2404" {
     format       = "raw"
     storage_pool = "local-lvm"
     type         = "scsi"
+    ssd          = true
   }
 
   # VM Network Settings
@@ -135,9 +137,11 @@ source "proxmox-iso" "ubuntu-2404" {
 
   # Cloud-init config via additional ISO
   additional_iso_files {
-    type             = "ide"
-    iso_storage_pool = "local"
-    unmount          = true
+    type              = "ide"
+    index             = 1
+    iso_storage_pool  = "local"
+    unmount           = true
+    keep_cdrom_device = false
     cd_files = [
       "./http/meta-data",
       "./http/user-data"
@@ -151,8 +155,10 @@ source "proxmox-iso" "ubuntu-2404" {
     "<esc><wait>",
     "e<wait>",
     "<down><down><down><end>",
-    " autoinstall ds=nocloud;",
-    "<f10>"
+    " autoinstall quiet ds=nocloud",
+    "<f10><wait>",
+    "<wait1m>",
+    "yes<enter>"
   ]
 
   # Communicator Settings
@@ -180,5 +186,25 @@ build {
       "sudo rm -f /etc/netplan/00-installer-config.yaml",
       "echo 'Ubuntu 24.04 Template by Packer - Creation Date: $(date)' | sudo tee /etc/issue"
     ]
+  }
+
+  # Added provisioner to forcibly eject ISO and prepare for reboot
+  provisioner "shell" {
+    inline = [
+      "echo 'Completed installation. Preparing for template conversion...'",
+      "echo 'Ejecting CD-ROM devices...'",
+      "sudo eject /dev/sr0 || true",
+      "sudo eject /dev/sr1 || true",
+      "echo 'Removing CD-ROM entries from fstab if present...'",
+      "sudo sed -i '/cdrom/d' /etc/fstab",
+      "sudo sync",
+      "echo 'Setting disk as boot device...'",
+      "sudo sed -i 's/GRUB_TIMEOUT=.*/GRUB_TIMEOUT=1/' /etc/default/grub",
+      "sudo update-grub",
+      "echo 'Clearing cloud-init status to ensure fresh start on first boot...'",
+      "sudo cloud-init clean --logs",
+      "echo 'Installation and cleanup completed successfully!'"
+    ]
+    expect_disconnect = true
   }
 }

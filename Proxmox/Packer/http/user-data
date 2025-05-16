@@ -4,12 +4,14 @@ autoinstall:
   locale: en_US
   keyboard:
     layout: us
+  identity:
+    hostname: ubuntu-server
+    username: ubuntu
+    password: "$6$rounds=4096$ntlX/dlo6b$HXaLN4RcLIGaEDdQdR2VTYi9pslSeXWL131MqaakqE285Nv0kW9KRontQYivCbycZerUMcjVsuLl2V8bbdadI1"
   ssh:
     install-server: true
     allow-pw: true
-    disable_root: true
     ssh_quiet_keygen: true
-    allow_public_ssh_keys: true
   network:
     network:
       version: 2
@@ -30,13 +32,7 @@ autoinstall:
   user-data:
     package_upgrade: false
     timezone: UTC
-    users:
-      - name: ubuntu
-        groups: [adm, sudo]
-        lock-passwd: false
-        sudo: ALL=(ALL) NOPASSWD:ALL
-        shell: /bin/bash
-        passwd: "$6$xyz$rfUoxhnMNc3wH8l7RJ01MgcxV5Oq.USZ4xrwy0Hc7rcEONrfBG6q5q1WYgON0aRnJj0BQCpxCPoSk3MeKCVOy."
+    disable_root: false
   late-commands:
     - echo 'ubuntu ALL=(ALL) NOPASSWD:ALL' > /target/etc/sudoers.d/ubuntu
     - chmod 440 /target/etc/sudoers.d/ubuntu
@@ -44,4 +40,6 @@ autoinstall:
       if [ -d /sys/firmware/efi ]; then
         apt-get install -y efibootmgr
         efibootmgr -o $(efibootmgr | perl -n -e '/Boot(.+)\* Ubuntu/ && print $1')
-      fi 
+      fi
+  # Force non-interactive installation
+  interactive-sections: [] 
