@@ -56,3 +56,4 @@ id_rsa.pub
 # Exclude secrets file
 secrets.pkrvars.hcl
 screenshots/
+Proxmox/Terraform/tfplan
