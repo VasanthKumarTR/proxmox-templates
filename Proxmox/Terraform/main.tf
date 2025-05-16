@@ -21,7 +21,7 @@ resource "proxmox_virtual_environment_vm" "ubuntu_vm" {
 
   # Use template created by Packer
   clone {
-    vm_id = 9000 # This should match the VM ID in your Packer configuration
+    vm_id = 9001 # Updated to match the template ID from our Packer build (ID 9001)
     full  = true
   }
 
@@ -42,19 +42,19 @@ resource "proxmox_virtual_environment_vm" "ubuntu_vm" {
     bridge = var.network_bridge
   }
 
+  # Disk configuration to resize the template's disk
   disk {
-    datastore_id = var.disk_storage
-    file_format  = "raw"
-    interface    = "scsi0"
+    interface    = "scsi0" # Must match the template's disk interface
     size         = var.disk_size
+    file_format  = "raw" # Match template's format
+    datastore_id = var.disk_storage
   }
-
-  serial_device {}
 
   operating_system {
     type = "l26"
   }
 
+  # Cloud-init configuration for the VM
   initialization {
     ip_config {
       ipv4 {
@@ -64,13 +64,12 @@ resource "proxmox_virtual_environment_vm" "ubuntu_vm" {
 
     user_account {
       keys     = [var.ssh_public_keys]
-      password = null
       username = "ubuntu"
+      password = var.vm_password
     }
-  }
 
-  cdrom {
-    file_id = "local:iso/ubuntu-24.04.2-live-server-amd64.iso"
+    # Note: Hostname is set automatically to the VM name by Proxmox
+    # If you need custom hostname settings, use custom_files with cloud-init config
   }
 }
 

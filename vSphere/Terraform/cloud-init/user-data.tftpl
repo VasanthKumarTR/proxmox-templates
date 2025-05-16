@@ -1,0 +1,23 @@
+#cloud-config
+
+hostname: ${hostname}
+
+%{ if override_password }
+# Password override
+chpasswd:
+  expire: false
+  list:
+    - ubuntu:${vm_password}
+%{ endif }
+
+# SSH keys
+ssh_authorized_keys:
+  - ${ssh_public_key}
+
+# Install packages
+package_update: true
+package_upgrade: true
+
+runcmd:
+  - echo "Cloud-init configuration applied successfully" > /var/log/cloud-init-custom.log
+  - systemctl restart docker || true 

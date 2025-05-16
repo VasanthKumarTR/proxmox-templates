@@ -60,3 +60,10 @@ variable "ssh_public_keys" {
   type        = string
   default     = ""
 }
+
+variable "vm_password" {
+  description = "Password for the Ubuntu user (overrides template password)"
+  type        = string
+  sensitive   = true
+  default     = null # If null, keeps the password from the template
+}

@@ -20,3 +20,6 @@ network_bridge = "vmbr0"
 
 # SSH public keys for cloud-init
 ssh_public_keys = "ssh-rsa AAAAB3Nz...your-ssh-public-key" 
+
+# Optional: Set a custom password for the Ubuntu user (leave commented to use the template password)
+# vm_password = "your-secure-password" 

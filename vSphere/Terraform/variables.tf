@@ -96,3 +96,28 @@ variable "ssh_private_key_path" {
   type        = string
   description = "Path to SSH private key for remote access"
 }
+
+variable "ssh_public_key" {
+  type        = string
+  default     = ""
+  description = "SSH public key for authentication (if empty, will use ssh_public_key_path)"
+}
+
+variable "ssh_public_key_path" {
+  type        = string
+  default     = "~/.ssh/id_rsa.pub"
+  description = "Path to SSH public key file (used if ssh_public_key is empty)"
+}
+
+variable "override_password" {
+  type        = bool
+  default     = false
+  description = "Whether to override the template's password"
+}
+
+variable "vm_password" {
+  type        = string
+  sensitive   = true
+  default     = ""
+  description = "Password for the VM user (only used if override_password is true)"
+}

@@ -115,46 +115,46 @@ variable "ssh_password" {
 }
 
 source "vsphere-iso" "ubuntu_2404" {
-  vcenter_server        = var.vcenter_server
-  username              = var.vcenter_username
-  password              = var.vcenter_password
-  insecure_connection   = var.vcenter_insecure_connection
+  vcenter_server      = var.vcenter_server
+  username            = var.vcenter_username
+  password            = var.vcenter_password
+  insecure_connection = var.vcenter_insecure_connection
 
-  datacenter            = var.datacenter
-  cluster               = var.cluster
-  datastore             = var.datastore
-  folder                = var.folder
-  host                  = var.host
-  
-  vm_name               = var.vm_name
-  convert_to_template   = true
-  
-  notes                 = "Ubuntu 24.04 Template built by Packer on ${timestamp()}"
-  guest_os_type         = "ubuntu64Guest"
-  
-  CPUs                  = var.vm_cpu_num
-  RAM                   = var.vm_mem_size
-  firmware              = "efi"
-  
-  disk_controller_type  = ["pvscsi"]
+  datacenter = var.datacenter
+  cluster    = var.cluster
+  datastore  = var.datastore
+  folder     = var.folder
+  host       = var.host
+
+  vm_name             = var.vm_name
+  convert_to_template = true
+
+  notes         = "Ubuntu 24.04 Template built by Packer on ${timestamp()}"
+  guest_os_type = "ubuntu64Guest"
+
+  CPUs     = var.vm_cpu_num
+  RAM      = var.vm_mem_size
+  firmware = "efi"
+
+  disk_controller_type = ["pvscsi"]
   storage {
     disk_size             = var.vm_disk_size
     disk_thin_provisioned = true
   }
-  
+
   network_adapters {
-    network               = var.network
-    network_card          = "vmxnet3"
+    network      = var.network
+    network_card = "vmxnet3"
   }
-  
-  iso_paths             = [var.iso_path]
-  iso_url               = var.iso_url
-  iso_checksum          = var.iso_checksum
-  
-  http_directory        = "http"
-  
-  boot_wait             = "5s"
-  boot_command          = [
+
+  iso_paths    = [var.iso_path]
+  iso_url      = var.iso_url
+  iso_checksum = var.iso_checksum
+
+  http_directory = "http"
+
+  boot_wait = "5s"
+  boot_command = [
     "c<wait>",
     "linux /casper/vmlinuz --- autoinstall ds=\"nocloud-net;seedfrom=http://{{ .HTTPIP }}:{{ .HTTPPort }}/\"",
     "<enter><wait>",
@@ -163,53 +163,76 @@ source "vsphere-iso" "ubuntu_2404" {
     "boot",
     "<enter>"
   ]
-  
-  ssh_username          = var.ssh_username
-  ssh_password          = var.ssh_password
-  ssh_timeout           = "30m"
-  
-  cd_files              = []
-  
-  shutdown_command      = "sudo -S shutdown -P now"
-  shutdown_timeout      = "15m"
-  
-  ip_wait_timeout       = "1h"
-  tools_upgrade_policy  = true
-  remove_cdrom          = true
+
+  ssh_username = var.ssh_username
+  ssh_password = var.ssh_password
+  ssh_timeout  = "30m"
+
+  cd_files = []
+
+  shutdown_command = "sudo -S shutdown -P now"
+  shutdown_timeout = "15m"
+
+  ip_wait_timeout      = "1h"
+  tools_upgrade_policy = true
+  remove_cdrom         = true
 }
 
 build {
-  name = "ubuntu-server-2404"
+  name    = "ubuntu-server-2404"
   sources = ["source.vsphere-iso.ubuntu_2404"]
 
   provisioner "shell" {
     inline = [
       "while [ ! -f /var/lib/cloud/instance/boot-finished ]; do echo 'Waiting for cloud-init...'; sleep 1; done",
       "echo 'Cloud-init finished...'",
-      "sudo apt-get update",
-      "sudo apt-get upgrade -y",
-      "sudo apt-get install -y open-vm-tools"
-    ]
-  }
-
-  provisioner "shell" {
-    inline = [
-      "echo 'Installing additional packages...'",
-      "sudo apt-get install -y vim net-tools htop iotop nmon",
-      "sudo apt-get install -y python3-pip git unzip jq",
-      "sudo apt-get install -y openssh-server fail2ban"
-    ]
-  }
-  
-  provisioner "shell" {
-    inline = [
-      "echo 'Setting up VMware tools...'",
-      "sudo apt-get install -y open-vm-tools cloud-init",
       "sudo systemctl enable open-vm-tools",
-      "sudo systemctl start open-vm-tools"
+      "sudo systemctl start open-vm-tools",
+      "sudo cloud-init clean",
+      "sudo rm -f /etc/cloud/cloud.cfg.d/subiquity-disable-cloudinit-networking.cfg",
+      "sudo rm -f /etc/netplan/00-installer-config.yaml",
+      "echo 'Ubuntu 24.04 Template by Packer - Creation Date: $(date)' | sudo tee /etc/issue"
     ]
   }
 
+  # Install Docker
+  provisioner "shell" {
+    inline = [
+      "echo 'Installing Docker...'",
+      "# Add Docker's official GPG key",
+      "sudo apt-get update",
+      "sudo apt-get install -y ca-certificates curl gnupg",
+      "sudo install -m 0755 -d /etc/apt/keyrings",
+      "curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg",
+      "sudo chmod a+r /etc/apt/keyrings/docker.gpg",
+
+      "# Add the Docker repository",
+      "echo \"deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo \"$VERSION_CODENAME\") stable\" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null",
+
+      "# Pin Docker version",
+      "echo 'Package: docker-ce' | sudo tee /etc/apt/preferences.d/docker-ce",
+      "echo 'Pin: version 5:27.5.1*' | sudo tee -a /etc/apt/preferences.d/docker-ce",
+      "echo 'Pin-Priority: 999' | sudo tee -a /etc/apt/preferences.d/docker-ce",
+
+      "# Install Docker",
+      "sudo apt-get update",
+      "sudo apt-get install -y docker-ce=5:27.5.1* docker-ce-cli=5:27.5.1* containerd.io docker-buildx-plugin docker-compose-plugin",
+
+      "# Add ubuntu user to docker group",
+      "sudo usermod -aG docker ubuntu",
+
+      "# Enable Docker service",
+      "sudo systemctl enable docker",
+
+      "# Verify installation",
+      "docker --version",
+      "docker compose version",
+
+      "echo 'Docker installation complete!'"
+    ]
+  }
+
+  # Final cleanup
   provisioner "shell" {
     inline = [
       "echo 'Cleaning up...'",
@@ -224,6 +247,7 @@ build {
     ]
   }
 
+  # Prepare for template conversion
   provisioner "shell" {
     inline = [
       "echo 'Preparing for template conversion...'",
@@ -234,7 +258,13 @@ build {
       "sudo rm -f /etc/ssh/ssh_host_*",
       "sudo mkdir -p /etc/systemd/system/ssh.service.d/",
       "echo '[Service]' | sudo tee /etc/systemd/system/ssh.service.d/regenerate_ssh_host_keys.conf",
-      "echo 'ExecStartPre=/bin/sh -c \"if [ -e /dev/zero ]; then rm -f /etc/ssh/ssh_host_* && ssh-keygen -A; fi\"' | sudo tee -a /etc/systemd/system/ssh.service.d/regenerate_ssh_host_keys.conf"
+      "echo 'ExecStartPre=/bin/sh -c \"if [ -e /dev/zero ]; then rm -f /etc/ssh/ssh_host_* && ssh-keygen -A; fi\"' | sudo tee -a /etc/systemd/system/ssh.service.d/regenerate_ssh_host_keys.conf",
+      "echo 'Setting disk as boot device...'",
+      "sudo sed -i 's/GRUB_TIMEOUT=.*/GRUB_TIMEOUT=1/' /etc/default/grub",
+      "sudo update-grub",
+      "echo 'Clearing cloud-init status to ensure fresh start on first boot...'",
+      "sudo cloud-init clean --logs",
+      "echo 'Installation and cleanup completed successfully!'"
     ]
   }
 }

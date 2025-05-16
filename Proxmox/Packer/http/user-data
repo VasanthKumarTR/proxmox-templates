@@ -24,6 +24,23 @@ autoinstall:
   packages:
     - qemu-guest-agent
     - sudo
+    - openssh-server
+    - net-tools
+    - perl
+    - open-iscsi
+    - curl
+    - vim
+    - ifupdown
+    - zip
+    - unzip
+    - gnupg2
+    - software-properties-common
+    - apt-transport-https
+    - ca-certificates
+    - lsb-release
+    - python3-pip
+    - jq
+    - cloud-init
   storage:
     layout:
       name: direct
