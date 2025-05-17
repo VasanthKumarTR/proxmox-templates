@@ -2,11 +2,20 @@
 
 This directory contains Packer configuration to build an Ubuntu 24.04 template VM in vSphere.
 
+## Versions Used
+
+This template has been tested with the following specific versions:
+
+- **vSphere vCenter**: 7.0.3.01800 (Build number: 22837322)
+- **ESXi host**: v6.7
+- **Packer**: v1.12.0
+- **Ubuntu**: 24.04 LTS (using ubuntu-24.04.2-live-server-amd64.iso)
+
 ## Prerequisites
 
-* [Packer](https://www.packer.io/downloads) installed on your machine (v1.8.0 or later recommended)
-* Access to a vSphere environment with vCenter
-* Network connectivity to download the Ubuntu 24.04 ISO (or pre-uploaded ISO to datastore)
+* [Packer](https://www.packer.io/downloads) installed on your machine (v1.12.0 or later)
+* Access to a vSphere environment with vCenter 7.0.3+ and ESXi 6.7+
+* Network connectivity to download the Ubuntu 24.04.2 ISO (or pre-uploaded ISO to datastore)
 
 ## Features
 
@@ -85,7 +94,7 @@ The relevant files are:
 
 If you encounter issues with the build process:
 
-1. Check that your Packer version is up-to-date
+1. Check that you're using Packer v1.12.0 or later
 2. Verify your vSphere credentials and permissions
 3. Ensure the path to ISO is correct or it can be downloaded from the specified URL
 4. Review the cloud-init files for any syntax errors

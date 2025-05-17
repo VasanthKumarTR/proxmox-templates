@@ -7,6 +7,17 @@ This repository contains infrastructure-as-code configurations for automatically
 
 The repository provides a complete workflow for both platforms, from template creation to VM deployment, using Packer and Terraform.
 
+## Versions Used
+
+This repository has been tested with the following specific versions:
+
+- **Proxmox Virtual Environment**: 8.4.0
+- **vSphere vCenter**: 7.0.3.01800 (Build number: 22837322)
+- **ESXi host**: v6.7
+- **Packer**: v1.12.0
+- **Terraform**: v1.5.7
+- **Ubuntu**: 24.04 LTS (using ubuntu-24.04.2-live-server-amd64.iso)
+
 ## Repository Structure
 
 - [`vSphere/`](./vSphere) - VMware vSphere configurations
@@ -46,19 +57,21 @@ The repository provides a complete workflow for both platforms, from template cr
 
 ### Common Requirements
 
-- [Packer](https://www.packer.io/downloads) (v1.8.0+ for vSphere, v1.12.0+ for Proxmox)
-- [Terraform](https://www.terraform.io/downloads) (v1.0.0+ for vSphere, v1.5.0+ for Proxmox)
+- [Packer](https://www.packer.io/downloads) v1.12.0+
+- [Terraform](https://www.terraform.io/downloads) v1.5.7+
 - SSH keypair for VM access
+- Ubuntu 24.04.2 ISO (ubuntu-24.04.2-live-server-amd64.iso)
 
 ### vSphere Requirements
 
-- vSphere environment with vCenter
+- vSphere environment with vCenter 7.0.3+
+- ESXi host v6.7+
 - Administrator credentials
 - Network with internet access for ISO download (or pre-uploaded ISO)
 
 ### Proxmox Requirements
 
-- Proxmox VE 8.0+
+- Proxmox VE 8.4.0+
 - API token with appropriate permissions
 - Ubuntu 24.04 ISO already uploaded to Proxmox storage
 

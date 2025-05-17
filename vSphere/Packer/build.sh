@@ -23,8 +23,9 @@ packer init ubuntu-24-04.pkr.hcl
 
 # Run Packer build with variable files
 echo "Starting Packer build..."
-packer build -force -on-error=ask \
+PACKER_LOG=1 packer build -force -on-error=ask \
   -var-file=secrets.pkrvars.hcl \
+  -var-file=variables.pkrvars.hcl \
   ubuntu-24-04.pkr.hcl
 
 echo "Build process completed!" 

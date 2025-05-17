@@ -2,11 +2,19 @@
 
 This directory contains Packer configuration to build an Ubuntu 24.04 template VM in Proxmox.
 
+## Versions Used
+
+This template has been tested with the following specific versions:
+
+- **Proxmox Virtual Environment**: 8.4.0
+- **Packer**: v1.12.0
+- **Ubuntu**: 24.04 LTS (using ubuntu-24.04.2-live-server-amd64.iso)
+
 ## Prerequisites
 
-1. [Packer](https://www.packer.io/downloads) installed on your machine (v1.12.0 or later recommended)
-2. Access to a Proxmox server
-3. Ubuntu 24.04 ISO image already uploaded to Proxmox (in local:iso storage)
+1. [Packer](https://www.packer.io/downloads) installed on your machine (v1.12.0 or later)
+2. Access to a Proxmox server running version 8.4.0+
+3. Ubuntu 24.04.2 ISO image already uploaded to Proxmox (in local:iso storage)
 
 ## Configuration
 
@@ -96,9 +104,9 @@ resource "proxmox_virtual_environment_vm" "ubuntu_vm" {
 
 If you encounter issues with the build process:
 
-1. Check that your Packer version is 1.12.0 or later
+1. Check that you're using Packer version 1.12.0 or later
 2. Verify your Proxmox credentials and permissions
-3. Ensure the Ubuntu ISO exists in the specified Proxmox storage location
+3. Ensure the Ubuntu 24.04.2 ISO exists in the specified Proxmox storage location
 4. Review the cloud-init files for any syntax errors
 
 The CD-ROM-based approach should work reliably in WSL2 environments without any special port forwarding or network configuration. 

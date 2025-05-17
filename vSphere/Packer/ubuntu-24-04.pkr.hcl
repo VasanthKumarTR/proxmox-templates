@@ -274,15 +274,13 @@ source "vsphere-iso" "ubuntu-2404" {
   boot_order = "disk,cdrom"
   boot_wait  = var.vm_boot_wait
 
-  # Boot command for Ubuntu 24.04
+  # Boot command for Ubuntu 24.04 (BIOS boot)
   boot_command = [
     "<esc><wait>",
-    "e<wait>",
-    "<down><down><down><end>",
-    " autoinstall quiet ds=nocloud",
-    "<f10><wait>",
-    "<wait1m>",
-    "yes<enter>"
+    "c<wait>",
+    "linux /casper/vmlinuz quiet autoinstall ds=nocloud<enter><wait>",
+    "initrd /casper/initrd<enter><wait>",
+    "boot<enter>"
   ]
 
   ip_wait_timeout        = "20m"

@@ -2,10 +2,19 @@
 
 This Terraform configuration allows you to easily provision Ubuntu 24.04 virtual machines on a vSphere environment from your pre-built template.
 
+## Versions Used
+
+This configuration has been tested with the following specific versions:
+
+- **vSphere vCenter**: 7.0.3.01800 (Build number: 22837322)
+- **ESXi host**: v6.7
+- **Terraform**: v1.5.7
+- **Ubuntu**: 24.04 LTS (using ubuntu-24.04.2-live-server-amd64.iso)
+
 ## Prerequisites
 
-* Terraform installed (version 1.0.0+)
-* Access to a vSphere environment with vCenter
+* Terraform installed (version 1.5.7+)
+* Access to a vSphere environment with vCenter 7.0.3+ and ESXi 6.7+
 * Ubuntu 24.04 template created with the Packer configuration in the `../Packer` directory
 
 ## Features

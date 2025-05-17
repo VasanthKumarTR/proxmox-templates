@@ -2,11 +2,19 @@
 
 This Terraform configuration allows you to easily provision Ubuntu 24.04 virtual machines on a Proxmox server using the BPG Proxmox provider.
 
+## Versions Used
+
+This configuration has been tested with the following specific versions:
+
+- **Proxmox Virtual Environment**: 8.4.0
+- **Terraform**: v1.5.7
+- **Ubuntu**: 24.04 LTS (using ubuntu-24.04.2-live-server-amd64.iso)
+
 ## Prerequisites
 
-* Terraform installed (version 1.5.0+)
-* Access to a Proxmox server (version 8.0+) with an API token
-* Ubuntu 24.04 server image available in Proxmox
+* Terraform installed (version 1.5.7+)
+* Access to a Proxmox server (version 8.4.0+) with an API token
+* Ubuntu 24.04 server template available in Proxmox
 
 ## Usage
 
