@@ -15,7 +15,7 @@ provider "proxmox" {
 
 resource "proxmox_virtual_environment_vm" "ubuntu_vm" {
   name        = var.vm_name
-  description = "Terraform-managed Ubuntu 24.04 VM"
+  description = "Terraform-managed Ubuntu 24.04 VM, use ubuntu@ip_address to login"
   tags        = ["terraform", "ubuntu"]
   node_name   = var.target_node
 
@@ -56,10 +56,20 @@ resource "proxmox_virtual_environment_vm" "ubuntu_vm" {
 
   # Cloud-init configuration for the VM
   initialization {
+    # Static IP configuration for primary network interface
     ip_config {
       ipv4 {
-        address = "dhcp"
+        # dhcp is default, but we can set a static IP if we want
+        # dhcp
+        address = var.static_ip_address
+        gateway = var.gateway
       }
+    }
+
+    # DNS servers configuration
+    dns {
+      servers = var.dns_servers
+      domain  = var.dns_domain
     }
 
     user_account {

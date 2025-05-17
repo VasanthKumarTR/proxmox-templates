@@ -55,6 +55,30 @@ variable "network_bridge" {
   default     = "vmbr0"
 }
 
+variable "static_ip_address" {
+  description = "Static IP address for the VM (including CIDR notation, e.g., 192.168.1.96/24)"
+  type        = string
+  default     = "192.168.1.96/24"
+}
+
+variable "gateway" {
+  description = "Network gateway IP address"
+  type        = string
+  default     = "192.168.1.1"
+}
+
+variable "dns_servers" {
+  description = "List of DNS servers"
+  type        = list(string)
+  default     = ["8.8.8.8", "8.8.4.4"]
+}
+
+variable "dns_domain" {
+  description = "DNS domain name"
+  type        = string
+  default     = "home"
+}
+
 variable "ssh_public_keys" {
   description = "SSH public keys to add to the VM"
   type        = string
