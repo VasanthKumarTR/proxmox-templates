@@ -27,10 +27,10 @@ flowchart TD
     K --> M[Use VM]
     M --> N[Destroy VM when Done]
     
-    style A fill:#f9f,stroke:#333,stroke-width:2px
-    style H fill:#bbf,stroke:#333,stroke-width:2px
-    style K fill:#bfb,stroke:#333,stroke-width:2px
-    style N fill:#fbb,stroke:#333,stroke-width:2px
+    style A fill:#d742f5,stroke:#333,stroke-width:2px,color:#fff
+    style H fill:#4254f5,stroke:#333,stroke-width:2px,color:#fff
+    style K fill:#42f55e,stroke:#333,stroke-width:2px,color:#000
+    style N fill:#f54242,stroke:#333,stroke-width:2px,color:#fff
 ```
 
 This automated workflow drastically reduces deployment time and ensures consistency across your infrastructure.
