@@ -24,7 +24,6 @@ override.tf.json
 terraform.rc
 
 # Ignore Packer variables files which might contain sensitive data
-variables.pkrvars.hcl
 *.auto.pkrvars.hcl
 
 # Ignore Packer build artifacts
