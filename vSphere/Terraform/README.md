@@ -10,6 +10,7 @@ This configuration has been tested with the following specific versions:
 - **ESXi host**: v6.7
 - **Terraform**: v1.5.7
 - **Ubuntu**: 24.04 LTS (using ubuntu-24.04.2-live-server-amd64.iso)
+- **vSphere Provider**: 2.12.0
 
 ## Prerequisites
 
@@ -19,24 +20,19 @@ This configuration has been tested with the following specific versions:
 
 ## Features
 
-* Deploy multiple VMs in parallel
+* Deploy multiple VMs in parallel using for_each
 * Customize VM resources (CPU, memory, disk)
+* Static or DHCP IP address configuration
 * Cloud-init integration for first-boot customization
 * SSH key injection for secure access
-* Optional password override for the default user
-* Post-deployment configuration via SSH
+* EFI firmware support for modern boot
 
 ## Usage
 
-1. Copy `terraform.tfvars.example` to `terraform.tfvars`
-2. Edit `terraform.tfvars` with your specific configuration
-3. Run the deployment script:
-
-```bash
-./build.sh
-```
-
-Or run the commands manually:
+1. Copy `terraform.tfvars.example` to `terraform.tfvars` (if not already present)
+2. Ensure `vars.auto.tfvars` is configured with your environment-specific settings
+3. Modify the VM definitions in the `locals` block of `variables.tf` as needed
+4. Run the commands manually:
 
 ```bash
 terraform init
@@ -44,72 +40,117 @@ terraform plan -out=tfplan
 terraform apply tfplan
 ```
 
+## Creating Multiple VMs in Parallel
+
+The configuration uses the `for_each` meta-argument to create multiple VMs in parallel. The VM definitions are in a `locals` block in `variables.tf`:
+
+```hcl
+locals {
+  # Define multiple VMs with their specific configurations
+  vms = {
+    "vm1" = {
+      name         = "ubuntu24-04-vm1"
+      ipv4_address = "192.168.1.97"
+      cpu          = var.cpu
+      ram          = var.ram
+      disksize     = var.disksize
+    },
+    "vm2" = {
+      name         = "ubuntu24-04-vm2"
+      ipv4_address = "192.168.1.98"
+      cpu          = var.cpu
+      ram          = var.ram
+      disksize     = var.disksize
+    }
+    # Add more VMs as needed
+  }
+
+  # Common template variables for all VMs
+  common_templatevars = {
+    ipv4_gateway = var.ipv4_gateway,
+    dns_server_1 = var.dns_server_list[0],
+    dns_server_2 = var.dns_server_list[1],
+    public_key   = var.public_key,
+    ssh_username = var.ssh_username
+  }
+}
+```
+
+To add more VMs, simply add more entries to the `vms` map with the desired configuration.
+
+## Project Structure
+
+- **main.tf**: Main Terraform configuration for VM deployment using for_each
+- **variables.tf**: Variable definitions and VM configuration via locals block
+- **output.tf**: Outputs for all created VM IP addresses and names
+- **templates/**: Template files for customizing deployed VMs
+  - **metadata.yaml**: Instance metadata template
+  - **userdata.yaml**: User configuration template
+
 ## Configuration Options
 
-Edit `terraform.tfvars` to customize your deployment:
+The configuration uses the following variables:
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| vsphere_user | vSphere username | None (Required) |
-| vsphere_password | vSphere password | None (Required) |
-| vsphere_server | vSphere server address | None (Required) |
-| datacenter | vSphere datacenter name | None (Required) |
-| cluster | vSphere cluster name | None (Required) |
-| datastore | vSphere datastore name | None (Required) |
-| network | vSphere network name | None (Required) |
-| template_name | VM template name to clone from | None (Required) |
-| vm_folder | VM folder to create VMs in | None (Required) |
-| vm_name_prefix | Prefix for VM names | "ubuntu24" |
-| domain | Domain name for VMs | "local" |
-| vm_count | Number of VMs to create | 1 |
-| num_cpus | Number of vCPUs for the VM | 2 |
-| memory | Memory in MB for the VM | 2048 |
-| disk_size | Disk size in GB (0 = use template size) | 0 |
-| ssh_username | SSH username for remote access | "ubuntu" |
-| ssh_private_key_path | Path to SSH private key | None (Required) |
-| ssh_public_key_path | Path to SSH public key | "~/.ssh/id_rsa.pub" |
-| ssh_public_key | Direct SSH public key string | "" |
-| override_password | Whether to override the template's password | false |
-| vm_password | Password for the VM user | "" |
+| Variable | Description | Default Value |
+|----------|-------------|---------------|
+| cpu | Number of vCPUs for the VM | 1 |
+| cores-per-socket | Number of cores per socket | 1 |
+| ram | Memory in MB for the VM | 2048 |
+| disksize | Disk size in GB | 40 |
+| vm-guest-id | Guest OS identifier | "ubuntu64Guest" |
+| vsphere-unverified-ssl | Allow unverified SSL certs | "true" |
+| vsphere-datacenter | vSphere datacenter name | "Datacenter" |
+| vsphere-cluster | vSphere cluster name | "Cluster01" |
+| vm-datastore | vSphere datastore name | "Datastore2_NonSSD" |
+| vm-network | vSphere network name | "VM Network" |
+| vm-domain | Domain name for VMs | "home" |
+| dns_server_list | List of DNS servers | ["8.8.8.8", "8.8.4.4"] |
+| ipv4_gateway | Default gateway | "192.168.1.254" |
+| ipv4_netmask | Network mask | "24" |
+| vm-template-name | VM template name to clone from | "Ubuntu-2404-Template" |
+| vsphere_user | vSphere username | (Required) |
+| vsphere_password | vSphere password | (Required) |
+| vsphere_vcenter | vSphere server address | (Required) |
+| ssh_username | SSH username for remote access | (Required) |
+| public_key | SSH public key for VM access | (Required) |
+
+## Output Values
+
+The configuration provides the following outputs:
+
+```hcl
+output "ip_addresses" {
+  description = "IP addresses of all created virtual machines"
+  value = {
+    for k, v in vsphere_virtual_machine.vm : k => v.guest_ip_addresses[0]
+  }
+}
+
+output "vm_names" {
+  description = "Names of all created virtual machines"
+  value = {
+    for k, v in vsphere_virtual_machine.vm : k => v.name
+  }
+}
+```
 
 ## Cloud-Init Configuration
 
 This configuration uses vSphere's cloud-init integration to customize VMs at first boot:
 
 1. **SSH Key Injection**: Your public SSH key is automatically injected into authorized_keys
-2. **Hostname Configuration**: Each VM gets a unique hostname based on the prefix and count
-3. **Password Override**: Optionally override the default user password
-4. **Post-deployment Tasks**: Run initial configuration commands via SSH
+2. **Network Configuration**: Each VM is configured with static IP or DHCP
+3. **Hostname Configuration**: Each VM gets the configured hostname
+4. **Package Installation**: Basic packages are installed on first boot
 
-The cloud-init configuration templates are located in the `cloud-init/` directory:
-- `meta-data.tftpl`: VM instance metadata
-- `user-data.tftpl`: User configuration template
+## Firmware Configuration
 
-## Project Structure
+The VMs are configured to use EFI firmware for modern boot capabilities, with secure boot disabled:
 
-- `main.tf`: Main Terraform configuration for VM deployment
-- `variables.tf`: Variable definitions
-- `terraform.tfvars.example`: Example variables file
-- `build.sh`: Build script for Terraform deployment
-- `cloud-init/`: Template files for customizing deployed VMs
-  - `meta-data.tftpl`: Instance metadata template
-  - `user-data.tftpl`: User configuration template
-
-## Outputs
-
-After successful deployment, the following information is displayed:
-
-- **VM IPs**: The IP addresses of all created VMs
-- **VM IDs**: The vSphere IDs of all created VMs
-
-## Notes
-
-* VMs are created in parallel based on the `vm_count` variable
-* The default user for SSH access is "ubuntu"
-* The default networking configuration uses DHCP
-* VM folder is created if it doesn't exist
-* VMs deployed from the template will have Docker 27.5.1 pre-installed
-* Remote-exec provisioner runs basic post-deployment configuration
+```hcl
+firmware                = "efi"
+efi_secure_boot_enabled = false
+```
 
 ## Troubleshooting
 
@@ -117,7 +158,6 @@ If you encounter issues during deployment:
 
 1. Verify your vSphere credentials and permissions
 2. Check that the template exists and is accessible
-3. Ensure your SSH key is correctly specified
+3. Ensure the VM template was created with EFI firmware if using EFI boot
 4. Verify network connectivity to the vSphere environment
-5. Check that the VM folder path is valid
-6. For SSH connection issues, verify that the VMs have network connectivity 
+5. For boot issues, check that the VM firmware (EFI/BIOS) matches the template 

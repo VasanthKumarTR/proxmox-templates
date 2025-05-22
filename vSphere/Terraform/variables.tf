@@ -5,19 +5,19 @@
 variable "vsphere_user" {
   type        = string
   description = "VMware vSphere user name"
-  sensitive = true
+  sensitive   = true
 }
 
 variable "vsphere_password" {
   type        = string
   description = "VMware vSphere password"
-  sensitive = true
+  sensitive   = true
 }
 
 variable "vsphere_vcenter" {
   type        = string
   description = "VMWare vCenter server FQDN / IP"
-  sensitive = true
+  sensitive   = true
 }
 
 variable "vsphere-unverified-ssl" {
@@ -39,22 +39,19 @@ variable "vsphere-cluster" {
 variable "vsphere-template-folder" {
   type        = string
   description = "Template folder"
-  default = "Templates"
+  default     = "Templates"
 }
 
 #================================#
 # VMware vSphere virtual machine #
 #================================#
 
-variable "name" {
-  type        = string
-  description = "The name of the vSphere virtual machines and the hostname of the machine"
-}
+# Note: The VM names and IP addresses are now defined in the locals block in main.tf
 
 variable "vm-name-prefix" {
   type        = string
-  description = "Name of VM prefix"
-  default     =  "k3sup"
+  description = "Name of VM prefix (for use in display names, not used with for_each implementation)"
+  default     = "ubuntu24"
 }
 
 variable "vm-datastore" {
@@ -74,7 +71,7 @@ variable "vm-linked-clone" {
 }
 
 variable "cpu" {
-  description = "Number of vCPU for the vSphere virtual machines"
+  description = "Number of vCPU for the vSphere virtual machines (default value, can be overridden per VM in locals)"
   default     = 2
 }
 
@@ -84,12 +81,12 @@ variable "cores-per-socket" {
 }
 
 variable "ram" {
-  description = "Amount of RAM for the vSphere virtual machines (example: 2048)"
+  description = "Amount of RAM for the vSphere virtual machines in MB (default value, can be overridden per VM in locals)"
 }
 
 variable "disksize" {
-  description = "Disk size, example 100 for 100 GB"
-  default = ""
+  description = "Disk size in GB (default value, can be overridden per VM in locals)"
+  default     = 40
 }
 
 variable "vm-guest-id" {
@@ -109,32 +106,64 @@ variable "vm-domain" {
 }
 
 variable "dns_server_list" {
-  type = list(string)
+  type        = list(string)
   description = "List of DNS servers"
-  default = ["8.8.8.8", "8.8.4.4"]
-}
-
-variable "ipv4_address" {
-  type = string
-  description = "ipv4 addresses for a vm"
+  default     = ["8.8.8.8", "8.8.4.4"]
 }
 
 variable "ipv4_gateway" {
-  type = string
+  type        = string
+  description = "Default gateway for the network"
 }
 
 variable "ipv4_netmask" {
-  type = string
+  type        = string
+  description = "Network mask (e.g., 24 for a /24 network)"
 }
 
 variable "ssh_username" {
-  type      = string
-  sensitive = true
-  default   = "sam"
+  type        = string
+  description = "SSH username for VM access"
+  sensitive   = true
+  default     = "ubuntu"
 }
 
 variable "public_key" {
   type        = string
   description = "Public key to be used to ssh into a machine"
   default     = "AAAAB3NzaC1yc2EAAAADAQABAAABAQCb7fcDZfIG+SxuP5UsZaoHPdh9MNxtEL5xRI71hzMS5h4SsZiPGEP4shLcF9YxSncdOJpyOJ6OgumNSFWj2pCd/kqg9wQzk/E1o+FRMbWX5gX8xMzPig8mmKkW5szhnP+yYYYuGUqvTAKX4ua1mQwL6PipWKYJ1huJhgpGHrvSQ6kuywJ23hw4klcaiZKXVYtvTi8pqZHhE5Kx1237a/6GRwnbGLEp0UR2Q/KPf6yRgZIrCdD+AtOznSBsBhf5vqcfnnwEIC/DOnqcOTahBVtFhOKuPSv3bUikAD4Vw7SIRteMltUVkd/O341fx+diKOBY7a8M6pn81HEZEmGsr7rT sam@SamMac.local"
+}
+
+#================================#
+# VM Configuration               #
+#================================#
+
+locals {
+  # Define multiple VMs with their specific configurations
+  vms = {
+    "vm1" = {
+      name         = "ubuntu24-04-vm1"
+      ipv4_address = "192.168.1.97"
+      cpu          = var.cpu
+      ram          = var.ram
+      disksize     = var.disksize
+    },
+    "vm2" = {
+      name         = "ubuntu24-04-vm2"
+      ipv4_address = "192.168.1.98"
+      cpu          = var.cpu
+      ram          = var.ram
+      disksize     = var.disksize
+    }
+    # Add more VMs as needed
+  }
+
+  # Common template variables for all VMs
+  common_templatevars = {
+    ipv4_gateway = var.ipv4_gateway,
+    dns_server_1 = var.dns_server_list[0],
+    dns_server_2 = var.dns_server_list[1],
+    public_key   = var.public_key,
+    ssh_username = var.ssh_username
+  }
 }

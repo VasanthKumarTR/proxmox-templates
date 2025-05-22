@@ -10,8 +10,9 @@ vm-datastore           = "Datastore2_NonSSD"
 vm-network             = "VM Network"
 vm-domain              = "home"
 dns_server_list        = ["8.8.8.8", "8.8.4.4"]
-name                   = "ubuntu24-04-test"
-ipv4_address           = "192.168.1.97"
 ipv4_gateway           = "192.168.1.254"
 ipv4_netmask           = "24"
 vm-template-name       = "Ubuntu-2404-Template"
+
+# Note: The specific VM names and IP addresses are now defined in the locals block 
+# in main.tf using the for_each configuration

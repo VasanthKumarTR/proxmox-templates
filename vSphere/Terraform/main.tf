@@ -14,18 +14,6 @@ provider "vsphere" {
   allow_unverified_ssl = true
 }
 
-locals {
-  templatevars = {
-    name         = var.name,
-    ipv4_address = var.ipv4_address,
-    ipv4_gateway = var.ipv4_gateway,
-    dns_server_1 = var.dns_server_list[0],
-    dns_server_2 = var.dns_server_list[1],
-    public_key   = var.public_key,
-    ssh_username = var.ssh_username
-  }
-}
-
 # Define VMware vSphere 
 data "vsphere_datacenter" "dc" {
   name = var.vsphere-datacenter
@@ -52,13 +40,15 @@ data "vsphere_virtual_machine" "template" {
 }
 
 resource "vsphere_virtual_machine" "vm" {
-  name             = var.name
+  for_each = local.vms
+
+  name             = each.value.name
   resource_pool_id = data.vsphere_compute_cluster.cluster.resource_pool_id
   datastore_id     = data.vsphere_datastore.datastore.id
 
-  num_cpus             = var.cpu
+  num_cpus             = each.value.cpu
   num_cores_per_socket = var.cores-per-socket
-  memory               = var.ram
+  memory               = each.value.ram
   guest_id             = var.vm-guest-id
 
   network_interface {
@@ -67,21 +57,29 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   disk {
-    label            = "${var.name}-disk"
+    label            = "${each.value.name}-disk"
     thin_provisioned = data.vsphere_virtual_machine.template.disks.0.thin_provisioned
     eagerly_scrub    = data.vsphere_virtual_machine.template.disks.0.eagerly_scrub
-    size             = var.disksize == "" ? data.vsphere_virtual_machine.template.disks.0.size : var.disksize
+    size             = each.value.disksize
   }
 
   clone {
     template_uuid = data.vsphere_virtual_machine.template.id
   }
+
+  # Create template vars specific to each VM by merging common vars with VM-specific vars
   extra_config = {
-    "guestinfo.metadata"          = base64encode(templatefile("${path.module}/templates/metadata.yaml", local.templatevars))
+    "guestinfo.metadata" = base64encode(templatefile("${path.module}/templates/metadata.yaml", merge(local.common_templatevars, {
+      name         = each.value.name,
+      ipv4_address = each.value.ipv4_address
+    })))
     "guestinfo.metadata.encoding" = "base64"
-    "guestinfo.userdata"          = base64encode(templatefile("${path.module}/templates/userdata.yaml", local.templatevars))
+    "guestinfo.userdata" = base64encode(templatefile("${path.module}/templates/userdata.yaml", merge(local.common_templatevars, {
+      name = each.value.name
+    })))
     "guestinfo.userdata.encoding" = "base64"
   }
+
   lifecycle {
     ignore_changes = [
       annotation,
