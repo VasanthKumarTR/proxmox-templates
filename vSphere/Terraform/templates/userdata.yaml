@@ -1,11 +1,28 @@
 #cloud-config
-users:
-  - name: ${ssh_username}
-    ssh-authorized-keys:
-      - ssh-rsa ${public_key}
-    sudo: ['ALL=(ALL) NOPASSWD:ALL']
-    groups: sudo
-    shell: /bin/bash
+###############################################################################
+# VM CUSTOMIZATION - USER DATA
+###############################################################################
+# This file contains cloud-init user data configuration for the VM
+# It sets up users, SSH keys, and installs required packages
+###############################################################################
 
+###############################################################################
+# USER ACCOUNT CONFIGURATION
+###############################################################################
+# Creates a user account with SSH access and sudo privileges
+users:
+  - name: ${ssh_username}  # Username from variables.tf
+    ssh-authorized-keys:   # SSH public keys for passwordless authentication
+      - ssh-rsa ${public_key}  # SSH public key from variables.tf
+    sudo: ['ALL=(ALL) NOPASSWD:ALL']  # Grant passwordless sudo access
+    groups: sudo  # Add user to sudo group
+    shell: /bin/bash  # Default shell for the user
+
+###############################################################################
+# PACKAGE INSTALLATION
+###############################################################################
+# Packages to install on first boot
 packages:
-  - tree
+  - tree  # Utility for displaying directory structure
+  # Add more packages here as needed
+  # Examples: python3-pip, nginx, etc.

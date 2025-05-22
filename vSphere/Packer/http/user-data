@@ -1,48 +1,82 @@
 #cloud-config
+###############################################################################
+# AUTOMATED UBUNTU INSTALLATION CONFIGURATION
+###############################################################################
+# This file contains the cloud-init configuration for the automated installation
+# of Ubuntu 24.04 during the template creation process.
+###############################################################################
+
 autoinstall:
+    # Specify the autoinstall version
     version: 1
+    
+    # Set system locale
     locale: en_US
+    
+    # Configure keyboard layout
     keyboard:
         layout: us
+    
+    # Packages to install during system installation
+    # These are essential packages for our template
     packages:
-        - open-vm-tools
-        - openssh-server
-        - net-tools
-        - perl
-        - open-iscsi
-        - curl
-        - vim
-        - ifupdown
-        - zip
-        - unzip
-        - gnupg2
-        - software-properties-common
-        - apt-transport-https
-        - ca-certificates
-        - lsb-release
-        - python3-pip
-        - jq
-        - cloud-init
+        - open-vm-tools       # VMware integration tools
+        - openssh-server      # SSH server for remote management
+        - net-tools           # Network utilities
+        - perl                # Required for some scripts
+        - open-iscsi          # iSCSI support
+        - curl                # HTTP request tool
+        - vim                 # Text editor
+        - ifupdown            # Network interface management
+        - zip                 # Compression tool
+        - unzip               # Decompression tool
+        - gnupg2              # GPG encryption
+        - software-properties-common  # Add apt repositories
+        - apt-transport-https # HTTPS transport for apt
+        - ca-certificates     # SSL certificates
+        - lsb-release         # OS information
+        - python3-pip         # Python package manager
+        - jq                  # JSON processor
+        - cloud-init          # Cloud instance initialization
+    
+    # Network configuration
+    # Configure the first network interface with DHCP
     network:
         network:
             version: 2
             ethernets:
-                ens192:
-                    dhcp4: true
+                ens192:       # First network interface (VMware)
+                    dhcp4: true  # Use DHCP
+    
+    # User account configuration
+    # Create an initial ubuntu user
     identity:
-        hostname: ubuntu-server
-        username: ubuntu
+        hostname: ubuntu-server  # Default hostname
+        username: ubuntu         # Default username
+        # Password hash for 'ubuntu' (change this in production)
         password: "$6$rounds=4096$ntlX/dlo6b$HXaLN4RcLIGaEDdQdR2VTYi9pslSeXWL131MqaakqE285Nv0kW9KRontQYivCbycZerUMcjVsuLl2V8bbdadI1"
+    
+    # SSH server configuration
     ssh:
-        install-server: yes
-        allow-pw: yes
+        install-server: yes   # Install SSH server
+        allow-pw: yes         # Allow password authentication
+        # Authorized SSH keys for passwordless login
         authorized-keys:
             - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCb7fcDZfIG+SxuP5UsZaoHPdh9MNxtEL5xRI71hzMS5h4SsZiPGEP4shLcF9YxSncdOJpyOJ6OgumNSFWj2pCd/kqg9wQzk/E1o+FRMbWX5gX8xMzPig8mmKkW5szhnP+yYYYuGUqvTAKX4ua1mQwL6PipWKYJ1huJhgpGHrvSQ6kuywJ23hw4klcaiZKXVYtvTi8pqZHhE5Kx1237a/6GRwnbGLEp0UR2Q/KPf6yRgZIrCdD+AtOznSBsBhf5vqcfnnwEIC/DOnqcOTahBVtFhOKuPSv3bUikAD4Vw7SIRteMltUVkd/O341fx+diKOBY7a8M6pn81HEZEmGsr7rT ubuntu@ubuntu.local
+    
+    # Storage configuration
+    # Use direct partition layout (no LVM)
     storage:
         layout:
             name: direct
+    
+    # Cloud-init user data configuration
+    # Disable root account
     user-data:
         disable_root: false
+    
+    # Commands to run after installation but before first boot
     late-commands:
+        # Configure sudo access for ubuntu user (passwordless sudo)
         - echo 'ubuntu ALL=(ALL) NOPASSWD:ALL' > /target/etc/sudoers.d/ubuntu
         - curtin in-target --target=/target -- chmod 440 /etc/sudoers.d/ubuntu

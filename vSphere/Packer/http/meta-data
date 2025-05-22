@@ -1,0 +1,11 @@
+###############################################################################
+# CLOUD-INIT METADATA CONFIGURATION
+###############################################################################
+# This file is intentionally left empty for the Ubuntu autoinstall process.
+# Cloud-init will use the autoinstall configuration from user-data instead.
+# 
+# For automated installations of Ubuntu 24.04, this file must exist,
+# but doesn't need any content. The autoinstall directive in the boot
+# command handles the installation process with the settings defined in
+# the user-data file.
+###############################################################################
