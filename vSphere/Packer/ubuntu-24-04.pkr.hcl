@@ -283,14 +283,14 @@ source "vsphere-iso" "ubuntu-2404" {
     "boot<enter>"
   ]
 
-  ip_wait_timeout        = "20m"
+  ip_wait_timeout        = "40m"
   ssh_password           = var.ssh_password
   ssh_username           = var.ssh_username
   ssh_port               = 22
-  ssh_timeout            = "30m"
-  ssh_handshake_attempts = "100"
+  ssh_timeout            = "50m"
+  ssh_handshake_attempts = "1000"
   shutdown_command       = "echo '${var.ssh_password}' | sudo -S -E shutdown -P now"
-  shutdown_timeout       = "15m"
+  shutdown_timeout       = "50m"
 }
 
 ##################################################################################
