@@ -56,3 +56,4 @@ id_rsa.pub
 secrets.pkrvars.hcl
 screenshots/
 Proxmox/Terraform/tfplan
+!vSphere/Terraform/vars.auto.tfvars
