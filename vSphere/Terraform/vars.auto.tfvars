@@ -14,5 +14,5 @@ ipv4_gateway           = "192.168.1.254"
 ipv4_netmask           = "24"
 vm-template-name       = "Ubuntu-2404-Template"
 
-# Note: The specific VM names and IP addresses are now defined in the locals block 
-# in main.tf using the for_each configuration
+# Note: The specific VM names and IP addresses are defined in the locals block 
+# in variables.tf using the for_each configuration
