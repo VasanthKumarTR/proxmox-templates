@@ -81,7 +81,7 @@ flowchart TD
     L3 --> M
     L4 --> M
 
-    subgraph "Deployment with Terraform"
+    subgraph "Deployment with Terraform (Next Blog Post)"
         P[Define Terraform Configuration] --> Q[Clone VM from Template]
         Q --> R[Customize VM Resources]
         R --> S[Configure Networking]
@@ -91,11 +91,21 @@ flowchart TD
 
     O --> P
 
-    style A fill:#d0e0ff,stroke:#0066cc
-    style D fill:#ffddaa,stroke:#ff8800
-    style M fill:#d5f5d5,stroke:#00aa00
-    style O fill:#aaffaa,stroke:#00aa00
-    style P fill:#f5d5f5,stroke:#aa00aa
+    style A fill:#d0e0ff,stroke:#0066cc,color:#003366
+    style D fill:#ffddaa,stroke:#ff8800,color:#664400
+    style M fill:#d5f5d5,stroke:#00aa00,color:#005500
+    style N fill:#d5d5d5,stroke:#555555,color:#333333
+    style O fill:#aaffaa,stroke:#00aa00,color:#006600
+    style P fill:#f5d5f5,stroke:#aa00aa,color:#550055
+    style L1 fill:#ffffff,stroke:#333333,color:#333333
+    style L2 fill:#ffffff,stroke:#333333,color:#333333
+    style L3 fill:#ffffff,stroke:#333333,color:#333333
+    style L4 fill:#ffffff,stroke:#333333,color:#333333
+    style Q fill:#e0e0e0,stroke:#333333,color:#333333
+    style R fill:#e0e0e0,stroke:#333333,color:#333333
+    style S fill:#e0e0e0,stroke:#333333,color:#333333
+    style T fill:#e0e0e0,stroke:#333333,color:#333333
+    style U fill:#e0e0e0,stroke:#333333,color:#333333
 ```
 
 This diagram shows the complete lifecycle:
