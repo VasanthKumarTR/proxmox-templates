@@ -42,67 +42,71 @@ Let's examine the environment requirements before proceeding:
 Before diving into the code, let's understand the complete workflow from configuration to deployment:
 
 ```mermaid
-flowchart TD
-    subgraph "Preparation"
-        A[Write Terraform Config Files] --> B[Define VM Specs in variables.tf]
-        B --> C[Configure Provider Settings]
+flowchart LR
+    subgraph Prep[Preparation]
+        direction TB
+        A[Write Terraform Config Files] --> B[Define VM Specs]
+        B --> C[Configure Provider]
         C --> D[Set up Cloud-Init Templates]
     end
 
-    subgraph "Initialization"
-        E[Run terraform init] --> F[Download vSphere Provider]
+    subgraph Init[Initialization]
+        direction TB
+        E[terraform init] --> F[Download Provider]
         F --> G[Initialize Backend]
     end
 
-    subgraph "Planning"
-        H[Run terraform plan] --> I[Validate Configuration]
-        I --> J[Preview Infrastructure Changes]
+    subgraph Plan[Planning]
+        direction TB
+        H[terraform plan] --> I[Validate Config]
+        I --> J[Preview Changes]
     end
 
-    subgraph "Execution"
-        K[Run terraform apply] --> L[Connect to vSphere API]
+    subgraph Exec[Execution]
+        direction TB
+        K[terraform apply] --> L[Connect to vSphere API]
         L --> M[Clone VM from Template]
-        M --> N[Configure Network Settings]
-        N --> O[Apply Cloud-Init Configuration]
-        O --> P[Boot New Virtual Machines]
+        M --> N[Configure Network]
+        N --> O[Apply Cloud-Init]
     end
 
-    subgraph "Verification"
+    subgraph Verify[Verification]
+        direction TB
         Q[Output VM Details] --> R[Check vSphere Client]
         R --> S[Verify SSH Access]
     end
 
-    subgraph "Cleanup (Optional)"
-        T[Run terraform destroy] --> U[Remove All Resources]
+    subgraph Clean[Cleanup]
+        direction TB
+        T[terraform destroy] --> U[Remove Resources]
     end
 
-    D --> E
-    G --> H
-    J --> K
-    P --> Q
-    S --> T
+    Prep --> Init
+    Init --> Plan
+    Plan --> Exec
+    Exec --> Verify
+    Verify --> Clean
 
-    style A fill:#003366,stroke:#000000,color:#ffffff
-    style B fill:#004488,stroke:#000000,color:#ffffff
-    style C fill:#004488,stroke:#000000,color:#ffffff
-    style D fill:#004488,stroke:#000000,color:#ffffff
-    style E fill:#993300,stroke:#000000,color:#ffffff
-    style F fill:#994400,stroke:#000000,color:#ffffff
-    style G fill:#994400,stroke:#000000,color:#ffffff
-    style H fill:#993300,stroke:#000000,color:#ffffff
-    style I fill:#994400,stroke:#000000,color:#ffffff
-    style J fill:#994400,stroke:#000000,color:#ffffff
-    style K fill:#993300,stroke:#000000,color:#ffffff
-    style L fill:#006600,stroke:#000000,color:#ffffff
-    style M fill:#006600,stroke:#000000,color:#ffffff
-    style N fill:#006600,stroke:#000000,color:#ffffff
-    style O fill:#006600,stroke:#000000,color:#ffffff
-    style P fill:#006600,stroke:#000000,color:#ffffff
-    style Q fill:#663399,stroke:#000000,color:#ffffff
-    style R fill:#663399,stroke:#000000,color:#ffffff
-    style S fill:#663399,stroke:#000000,color:#ffffff
-    style T fill:#990000,stroke:#000000,color:#ffffff
-    style U fill:#990000,stroke:#000000,color:#ffffff
+    classDef prep fill:#003366,stroke:#000000,color:#ffffff
+    classDef init fill:#993300,stroke:#000000,color:#ffffff
+    classDef plan fill:#994400,stroke:#000000,color:#ffffff
+    classDef exec fill:#006600,stroke:#000000,color:#ffffff
+    classDef verify fill:#663399,stroke:#000000,color:#ffffff
+    classDef clean fill:#990000,stroke:#000000,color:#ffffff
+    
+    class A,B,C,D prep
+    class E,F,G init
+    class H,I,J plan
+    class K,L,M,N,O exec
+    class Q,R,S verify
+    class T,U clean
+    
+    class Prep prep
+    class Init init
+    class Plan plan
+    class Exec exec
+    class Verify verify
+    class Clean clean
 ```
 
 This workflow shows the complete lifecycle of VM deployment with Terraform:
