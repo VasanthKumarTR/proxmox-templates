@@ -439,5 +439,6 @@ No more manual clicks, no more inconsistencies, no more wasted time - just effic
 - Learn how to integrate Terraform with CI/CD pipelines for automated infrastructure deployment
 - Explore more advanced Terraform features, such as modules and workspaces
 - Implement monitoring and logging for your virtual machines to gain deeper insights into their performance and health
+- Take your Terraform skills to the next level with our comprehensive [Terraform 101 course](https://tekanaid.com/course/terraform-101/)
 
 By embracing infrastructure as code with Terraform, you're taking a significant step toward modern, efficient infrastructure management that can scale with your organization's needs. 
