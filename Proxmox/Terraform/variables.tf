@@ -14,33 +14,9 @@ variable "proxmox_api_token_secret" {
   sensitive   = true
 }
 
-variable "vm_name" {
-  description = "Name of the VM"
-  type        = string
-  default     = "ubuntu-vm"
-}
-
 variable "target_node" {
   description = "Proxmox node to create the VM on"
   type        = string
-}
-
-variable "vm_cores" {
-  description = "Number of CPU cores"
-  type        = number
-  default     = 2
-}
-
-variable "vm_memory" {
-  description = "Amount of memory in MB"
-  type        = number
-  default     = 2048
-}
-
-variable "disk_size" {
-  description = "Disk size for the VM (in GB)"
-  type        = string
-  default     = "20"
 }
 
 variable "disk_storage" {
@@ -53,12 +29,6 @@ variable "network_bridge" {
   description = "Network bridge to use"
   type        = string
   default     = "vmbr0"
-}
-
-variable "static_ip_address" {
-  description = "Static IP address for the VM (including CIDR notation, e.g., 192.168.1.96/24)"
-  type        = string
-  default     = "192.168.1.96/24"
 }
 
 variable "gateway" {
@@ -90,4 +60,28 @@ variable "vm_password" {
   type        = string
   sensitive   = true
   default     = null # If null, keeps the password from the template
+}
+
+variable "vms" {
+  description = "Map of VMs to create with their configurations"
+  type = map(object({
+    ip_address = string
+    cores      = number
+    memory     = number
+    disk_size  = string
+  }))
+  default = {
+    "multipurpose" = {
+      ip_address = "192.168.1.96/24"
+      cores      = 8
+      memory     = 8192
+      disk_size  = "100"
+    }
+    "vm-97" = {
+      ip_address = "192.168.1.97/24"
+      cores      = 2
+      memory     = 2048
+      disk_size  = "20"
+    }
+  }
 }

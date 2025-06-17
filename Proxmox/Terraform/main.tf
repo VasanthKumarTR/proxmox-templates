@@ -14,8 +14,10 @@ provider "proxmox" {
 }
 
 resource "proxmox_virtual_environment_vm" "ubuntu_vm" {
-  name        = var.vm_name
-  description = "Terraform-managed Ubuntu 24.04 VM, use ubuntu@ip_address to login"
+  for_each = var.vms
+
+  name        = each.key
+  description = "Terraform-managed Ubuntu 24.04 VM, use ubuntu@${each.value.ip_address} to login"
   tags        = ["terraform", "ubuntu"]
   node_name   = var.target_node
 
@@ -30,12 +32,12 @@ resource "proxmox_virtual_environment_vm" "ubuntu_vm" {
   }
 
   cpu {
-    cores = var.vm_cores
+    cores = each.value.cores
     type  = "host"
   }
 
   memory {
-    dedicated = var.vm_memory
+    dedicated = each.value.memory
   }
 
   network_device {
@@ -45,7 +47,7 @@ resource "proxmox_virtual_environment_vm" "ubuntu_vm" {
   # Disk configuration to resize the template's disk
   disk {
     interface    = "scsi0" # Must match the template's disk interface
-    size         = var.disk_size
+    size         = each.value.disk_size
     file_format  = "raw" # Match template's format
     datastore_id = var.disk_storage
   }
@@ -59,9 +61,7 @@ resource "proxmox_virtual_environment_vm" "ubuntu_vm" {
     # Static IP configuration for primary network interface
     ip_config {
       ipv4 {
-        # dhcp is default, but we can set a static IP if we want
-        # dhcp
-        address = var.static_ip_address
+        address = each.value.ip_address
         gateway = var.gateway
       }
     }
@@ -83,7 +83,9 @@ resource "proxmox_virtual_environment_vm" "ubuntu_vm" {
   }
 }
 
-output "vm_ip_address" {
-  description = "IP address of the created VM"
-  value       = proxmox_virtual_environment_vm.ubuntu_vm.ipv4_addresses
+output "vm_ip_addresses" {
+  description = "IP addresses of the created VMs"
+  value = {
+    for k, v in proxmox_virtual_environment_vm.ubuntu_vm : k => v.ipv4_addresses
+  }
 }
