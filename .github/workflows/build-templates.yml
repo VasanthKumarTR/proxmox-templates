@@ -37,11 +37,21 @@ jobs:
 
       - name: Packer Version
         run: |
+          # Check Docker access and fix permissions if needed
+          if ! docker ps >/dev/null 2>&1; then
+            echo "Docker permission issue detected. Attempting to fix..."
+            sudo usermod -aG docker $USER || true
+            sudo chmod 666 /var/run/docker.sock || true
+          fi
           docker run --rm -v $PWD:/workspace -w /workspace \
             hashicorp/packer:${{ env.PACKER_VERSION }} version
 
       - name: Validate Packer Template
         run: |
+          # Ensure Docker access
+          if ! docker ps >/dev/null 2>&1; then
+            sudo chmod 666 /var/run/docker.sock || true
+          fi
           docker run --rm -v $PWD:/workspace -w /workspace/Proxmox/Windows2022/Packer \
             hashicorp/packer:${{ env.PACKER_VERSION }} \
             validate -var-file=variables.pkrvars.hcl windows-2022.pkr.hcl
@@ -61,6 +71,10 @@ jobs:
           PROXMOX_TOKEN: ${{ secrets.PROXMOX_TOKEN }}
           PROXMOX_NODE: ${{ secrets.PROXMOX_NODE }}
         run: |
+          # Ensure Docker access
+          if ! docker ps >/dev/null 2>&1; then
+            sudo chmod 666 /var/run/docker.sock || true
+          fi
           force_rebuild="${{ github.event.inputs.force_rebuild || 'false' }}"
           cd Proxmox/Windows2022/Packer
           vm_id="9100"
@@ -113,6 +127,10 @@ jobs:
           PROXMOX_TOKEN: ${{ secrets.PROXMOX_TOKEN }}
           PROXMOX_NODE: ${{ secrets.PROXMOX_NODE }}
         run: |
+          # Ensure Docker access
+          if ! docker ps >/dev/null 2>&1; then
+            sudo chmod 666 /var/run/docker.sock || true
+          fi
           cd Proxmox/Windows2022/Terraform
           cat > secrets.auto.tfvars << EOF
           proxmox_api_url = "$PROXMOX_URL"
