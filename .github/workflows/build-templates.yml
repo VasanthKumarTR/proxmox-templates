@@ -30,7 +30,7 @@ env:
 jobs:
   validate:
     name: Validate Windows 2022
-    runs-on: [self-hosted]
+    runs-on: self-hosted
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -48,7 +48,7 @@ jobs:
 
   build-packer:
     name: Build Windows 2022 Template
-    runs-on: [self-hosted]
+    runs-on: self-hosted
     needs: validate
     steps:
       - name: Checkout
@@ -96,7 +96,7 @@ jobs:
 
   terraform-test:
     name: Terraform Test (Optional)
-    runs-on: [self-hosted]
+    runs-on: self-hosted
     needs: build-packer
     if: |
       always() && 
@@ -130,7 +130,7 @@ jobs:
 
   notify:
     name: Notify Results
-    runs-on: [self-hosted]
+    runs-on: self-hosted
     needs: [build-packer, terraform-test]
     if: always()
     steps:
