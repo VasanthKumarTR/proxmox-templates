@@ -6,7 +6,7 @@ on:
 jobs:
   discover:
     name: Discover Proxmox Node Names
-    runs-on: [self-hosted, proxmox]
+    runs-on: [self-hosted]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
