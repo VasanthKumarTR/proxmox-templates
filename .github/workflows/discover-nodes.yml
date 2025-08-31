@@ -1,0 +1,34 @@
+name: Discover Proxmox Nodes
+
+on:
+  workflow_dispatch:
+
+jobs:
+  discover:
+    name: Discover Proxmox Node Names
+    runs-on: [self-hosted, proxmox]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Run Node Discovery
+        run: |
+          chmod +x discover-nodes-runner.sh
+          ./discover-nodes-runner.sh
+          
+      - name: Test with Authentication (if token available)
+        env:
+          PROXMOX_URL: ${{ secrets.PROXMOX_URL }}
+          PROXMOX_TOKEN: ${{ secrets.PROXMOX_TOKEN }}
+        run: |
+          if [ -n "$PROXMOX_TOKEN" ]; then
+            echo "🔐 Testing with authentication..."
+            for ip in 172.16.11.1 172.16.11.2 172.16.11.3; do
+              echo "Testing $ip..."
+              curl -k -s -H "Authorization: PVEAPIToken=$PROXMOX_TOKEN" \
+                "https://$ip:8006/api2/json/nodes" | jq -r '.data[]?.node // "No nodes or auth failed"' || true
+              echo ""
+            done
+          else
+            echo "No PROXMOX_TOKEN set, skipping authenticated test"
+          fi
