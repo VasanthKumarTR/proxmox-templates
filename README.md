@@ -1,6 +1,6 @@
-# Proxmox VM Templates
+# Proxmox Windows Server 2022 Template
 
-Automated VM template creation for Proxmox VE using Packer and Terraform, with GitHub Actions CI/CD.
+Automated Windows Server 2022 template creation for Proxmox VE using Packer (and optional Terraform test), driven by GitHub Actions.
 
 ## 🚀 Quick Start
 
@@ -9,13 +9,11 @@ Automated VM template creation for Proxmox VE using Packer and Terraform, with G
 3. **Configure a self-hosted runner** on a machine with Proxmox access
 4. **Push changes or trigger builds** via GitHub Actions
 
-## 📋 Available Templates
+## 📋 Template
 
-| Template | OS | Status | VM ID |
-|----------|----|---------|----|
-| Ubuntu 24.04 LTS | Ubuntu Server 24.04 | ✅ Ready | 9000 |
-| Windows Server 2022 | Windows Server 2022 Standard | ✅ Ready | 9100 |
-| RHEL 7 | Red Hat Enterprise Linux 7 | 🚧 In Progress | 9200 |
+| Template | OS | VM ID |
+|----------|----|-------|
+| Windows Server 2022 | Windows Server 2022 Standard | 9100 |
 
 ## ⚙️ Setup
 
@@ -47,62 +45,40 @@ Templates are automatically built when:
 
 ### Manual Builds
 
-Trigger builds manually via GitHub Actions:
-
-1. Go to **Actions** tab in your repository
-2. Select **Build Proxmox Templates** workflow
-3. Click **Run workflow**
-4. Choose template and options
-
-### Build Options
-
-- **Template**: Choose specific template or "all"
-- **Force Rebuild**: Overwrite existing templates
-- **Terraform Apply**: Test template deployment after build
+Trigger builds manually via GitHub Actions (Run workflow) and optionally enable Terraform test or force rebuild.
 
 ## 🔧 Development
 
-### Local Development
+### Local Validation (Docker)
 
 ```bash
-# Clone repository
 git clone https://github.com/yourusername/proxmox-templates.git
-cd proxmox-templates
-
-# Validate templates (requires Docker)
-docker run --rm -v $PWD:/workspace -w /workspace/Proxmox/Ubuntu24/Packer \
-  hashicorp/packer:1.12.0 validate -var-file=variables.pkrvars.hcl ubuntu-2404.pkr.hcl
+cd proxmox-templates/Proxmox/Windows2022/Packer
+docker run --rm -v $PWD:/workspace -w /workspace hashicorp/packer:1.12.0 validate -var-file=variables.pkrvars.hcl windows-2022.pkr.hcl
 ```
 
-### Template Structure
+### Structure
 
 ```
 Proxmox/
-├── Ubuntu24/
-│   ├── Packer/
-│   │   ├── ubuntu-2404.pkr.hcl      # Packer template
-│   │   ├── variables.pkrvars.hcl     # Template variables
-│   │   ├── secrets.pkrvars.hcl.example
-│   │   └── http/                     # Cloud-init files
-│   └── Terraform/
-│       ├── main.tf                   # Terraform deployment
-│       └── variables.tf
-├── Windows2022/
-│   ├── Packer/
-│   │   ├── windows-2022.pkr.hcl
-│   │   ├── answer_files/
-│   │   └── scripts/
-│   └── Terraform/
-└── RHEL7/ (coming soon)
+└── Windows2022/
+  ├── Packer/
+  │   ├── windows-2022.pkr.hcl
+  │   ├── variables.pkrvars.hcl
+  │   ├── secrets.pkrvars.hcl.example
+  │   ├── answer_files/
+  │   └── scripts/
+  └── Terraform/
+    ├── main.tf
+    └── variables.tf
 ```
 
 ### Workflow
 
-1. **Edit templates** locally or via GitHub web interface
-2. **Commit changes** to a feature branch
-3. **Create pull request** to trigger validation
-4. **Merge to main** to trigger production builds
-5. **Monitor builds** in GitHub Actions
+1. Edit the Packer template or scripts
+2. Commit and push (PRs trigger validation, main builds)
+3. Monitor GitHub Actions
+4. (Optional) Terraform test deploy
 
 ## 📊 Monitoring
 
@@ -140,17 +116,14 @@ Proxmox/
 2. **Review Packer documentation** for template syntax
 3. **Verify Proxmox API connectivity** from runner
 
-## 🎯 Roadmap
+## 🎯 Roadmap (Focused)
 
-- [x] Ubuntu 24.04 LTS template
 - [x] Windows Server 2022 template
 - [x] GitHub Actions CI/CD
 - [x] Containerized builds
-- [ ] RHEL 7 template
-- [ ] Windows Server 2019 template
-- [ ] Multi-architecture support (ARM64)
-- [ ] Template versioning and rollback
-- [ ] Integration tests with Ansible
+- [ ] Terraform output validation enhancements
+- [ ] Add health checks & Proxmox API preflight
+- [ ] Additional OS templates (future separate branches)
 
 ## 📄 License
 

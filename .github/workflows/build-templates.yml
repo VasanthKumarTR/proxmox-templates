@@ -1,27 +1,17 @@
-name: Build Proxmox Templates
+name: Build Windows 2022 Proxmox Template
 
 on:
   push:
     branches: [ main, develop ]
     paths:
-      - 'Proxmox/**'
+      - 'Proxmox/Windows2022/**'
       - '.github/workflows/**'
   pull_request:
     branches: [ main ]
     paths:
-      - 'Proxmox/**'
+      - 'Proxmox/Windows2022/**'
   workflow_dispatch:
     inputs:
-      template:
-        description: 'Template to build (ubuntu2404, windows2022, rhel7, all)'
-        required: true
-        default: 'ubuntu2404'
-        type: choice
-        options:
-          - ubuntu2404
-          - windows2022
-          - rhel7
-          - all
       force_rebuild:
         description: 'Force rebuild even if template exists'
         required: false
@@ -39,100 +29,30 @@ env:
 
 jobs:
   validate:
-    name: Validate Templates
-    runs-on: self-hosted
-    outputs:
-      templates: ${{ steps.detect.outputs.templates }}
+    name: Validate Windows 2022
+    runs-on: [self-hosted, proxmox]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Detect Changed Templates
-        id: detect
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            if [ "${{ github.event.inputs.template }}" = "all" ]; then
-              echo "templates=[\"ubuntu2404\",\"windows2022\",\"rhel7\"]" >> $GITHUB_OUTPUT
-            else
-              echo "templates=[\"${{ github.event.inputs.template }}\"]" >> $GITHUB_OUTPUT
-            fi
-          else
-            # Detect changed templates from git diff
-            templates=()
-            if git diff --name-only HEAD~1 | grep -q "Proxmox/Ubuntu24/"; then
-              templates+=(\"ubuntu2404\")
-            fi
-            if git diff --name-only HEAD~1 | grep -q "Proxmox/Windows2022/"; then
-              templates+=(\"windows2022\")
-            fi
-            if git diff --name-only HEAD~1 | grep -q "Proxmox/RHEL7/"; then
-              templates+=(\"rhel7\")
-            fi
-            
-            # If no specific templates changed, default to ubuntu2404
-            if [ ${#templates[@]} -eq 0 ]; then
-              templates+=(\"ubuntu2404\")
-            fi
-            
-            # Convert to JSON array
-            IFS=','
-            echo "templates=[${templates[*]}]" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Setup Packer
+      - name: Packer Version
         run: |
           docker run --rm -v $PWD:/workspace -w /workspace \
-            hashicorp/packer:${{ env.PACKER_VERSION }} \
-            version
+            hashicorp/packer:${{ env.PACKER_VERSION }} version
 
-      - name: Validate Packer Templates
+      - name: Validate Packer Template
         run: |
-          templates='${{ steps.detect.outputs.templates }}'
-          echo "Validating templates: $templates"
-          
-          for template in $(echo $templates | jq -r '.[]'); do
-            echo "Validating $template..."
-            case $template in
-              "ubuntu2404")
-                docker run --rm -v $PWD:/workspace -w /workspace/Proxmox/Ubuntu24/Packer \
-                  hashicorp/packer:${{ env.PACKER_VERSION }} \
-                  validate -var-file=variables.pkrvars.hcl ubuntu-2404.pkr.hcl
-                ;;
-              "windows2022")
-                docker run --rm -v $PWD:/workspace -w /workspace/Proxmox/Windows2022/Packer \
-                  hashicorp/packer:${{ env.PACKER_VERSION }} \
-                  validate -var-file=variables.pkrvars.hcl windows-2022.pkr.hcl
-                ;;
-              "rhel7")
-                if [ -f "Proxmox/RHEL7/Packer/rhel-7.pkr.hcl" ]; then
-                  docker run --rm -v $PWD:/workspace -w /workspace/Proxmox/RHEL7/Packer \
-                    hashicorp/packer:${{ env.PACKER_VERSION }} \
-                    validate -var-file=variables.pkrvars.hcl rhel-7.pkr.hcl
-                else
-                  echo "RHEL7 template not found, skipping validation"
-                fi
-                ;;
-            esac
-          done
+          docker run --rm -v $PWD:/workspace -w /workspace/Proxmox/Windows2022/Packer \
+            hashicorp/packer:${{ env.PACKER_VERSION }} \
+            validate -var-file=variables.pkrvars.hcl windows-2022.pkr.hcl
 
   build-packer:
-    name: Build Template
-    runs-on: self-hosted
+    name: Build Windows 2022 Template
+    runs-on: [self-hosted, proxmox]
     needs: validate
-    if: needs.validate.outputs.templates != '[]'
-    strategy:
-      matrix:
-        template: ${{ fromJson(needs.validate.outputs.templates) }}
-      fail-fast: false
-      max-parallel: 1  # Build templates sequentially to avoid resource conflicts
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Setup Build Environment
-        run: |
-          echo "Building template: ${{ matrix.template }}"
-          echo "Force rebuild: ${{ github.event.inputs.force_rebuild || 'false' }}"
 
       - name: Build Packer Template
         env:
@@ -141,47 +61,18 @@ jobs:
           PROXMOX_TOKEN: ${{ secrets.PROXMOX_TOKEN }}
           PROXMOX_NODE: ${{ secrets.PROXMOX_NODE }}
         run: |
-          template="${{ matrix.template }}"
           force_rebuild="${{ github.event.inputs.force_rebuild || 'false' }}"
-          
-          case $template in
-            "ubuntu2404")
-              cd Proxmox/Ubuntu24/Packer
-              template_file="ubuntu-2404.pkr.hcl"
-              vm_id="9000"
-              ;;
-            "windows2022")
-              cd Proxmox/Windows2022/Packer
-              template_file="windows-2022.pkr.hcl"
-              vm_id="9100"
-              ;;
-            "rhel7")
-              cd Proxmox/RHEL7/Packer
-              template_file="rhel-7.pkr.hcl"
-              vm_id="9200"
-              ;;
-            *)
-              echo "Unknown template: $template"
-              exit 1
-              ;;
-          esac
-          
-          # Check if template already exists
+          cd Proxmox/Windows2022/Packer
+          vm_id="9100"
           if [ "$force_rebuild" != "true" ]; then
-            echo "Checking if template $vm_id already exists..."
-            # Add Proxmox API check here if needed
+            echo "(Optional) Check if template $vm_id exists via Proxmox API here"
           fi
-          
-          # Create secrets file
           cat > secrets.pkrvars.hcl << EOF
           proxmox_url = "$PROXMOX_URL"
           proxmox_username = "$PROXMOX_USERNAME"
           proxmox_token = "$PROXMOX_TOKEN"
           proxmox_node = "$PROXMOX_NODE"
           EOF
-          
-          # Build template
-          echo "Starting Packer build for $template..."
           docker run --rm \
             -v $PWD:/workspace \
             -w /workspace \
@@ -190,116 +81,63 @@ jobs:
             build \
             -var-file=variables.pkrvars.hcl \
             -var-file=secrets.pkrvars.hcl \
-            $template_file
-          
-          # Cleanup secrets
+            windows-2022.pkr.hcl
           rm -f secrets.pkrvars.hcl
 
       - name: Upload Build Logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: packer-logs-${{ matrix.template }}
+          name: packer-logs-windows2022
           path: |
-            Proxmox/*/Packer/*.log
-            Proxmox/*/Packer/packer_cache/
+            Proxmox/Windows2022/Packer/*.log
+            Proxmox/Windows2022/Packer/packer_cache/
           retention-days: 7
 
   terraform-test:
-    name: Test Template with Terraform
-    runs-on: self-hosted
-    needs: [validate, build-packer]
+    name: Terraform Test (Optional)
+    runs-on: [self-hosted, proxmox]
+    needs: build-packer
     if: |
       always() && 
       needs.build-packer.result == 'success' && 
       (github.event.inputs.terraform_apply == 'true' || github.event_name == 'push')
-    strategy:
-      matrix:
-        template: ${{ fromJson(needs.validate.outputs.templates) }}
-      fail-fast: false
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Test Template with Terraform
+      - name: Terraform Plan/Apply
         env:
           PROXMOX_URL: ${{ secrets.PROXMOX_URL }}
           PROXMOX_USERNAME: ${{ secrets.PROXMOX_USERNAME }}
           PROXMOX_TOKEN: ${{ secrets.PROXMOX_TOKEN }}
           PROXMOX_NODE: ${{ secrets.PROXMOX_NODE }}
         run: |
-          template="${{ matrix.template }}"
-          
-          case $template in
-            "ubuntu2404")
-              cd Proxmox/Ubuntu24/Terraform
-              ;;
-            "windows2022")
-              cd Proxmox/Windows2022/Terraform
-              ;;
-            "rhel7")
-              cd Proxmox/RHEL7/Terraform
-              ;;
-          esac
-          
-          # Create secrets file
+          cd Proxmox/Windows2022/Terraform
           cat > secrets.auto.tfvars << EOF
           proxmox_url = "$PROXMOX_URL"
           proxmox_username = "$PROXMOX_USERNAME"
           proxmox_token = "$PROXMOX_TOKEN"
           proxmox_node = "$PROXMOX_NODE"
           EOF
-          
-          # Initialize Terraform
-          docker run --rm \
-            -v $PWD:/workspace \
-            -w /workspace \
-            hashicorp/terraform:${{ env.TERRAFORM_VERSION }} \
-            init
-          
-          # Plan Terraform
-          docker run --rm \
-            -v $PWD:/workspace \
-            -w /workspace \
-            hashicorp/terraform:${{ env.TERRAFORM_VERSION }} \
-            plan -out=tfplan
-          
-          # Apply only if explicitly requested
+          docker run --rm -v $PWD:/workspace -w /workspace hashicorp/terraform:${{ env.TERRAFORM_VERSION }} init
+          docker run --rm -v $PWD:/workspace -w /workspace hashicorp/terraform:${{ env.TERRAFORM_VERSION }} plan -out=tfplan
           if [ "${{ github.event.inputs.terraform_apply }}" = "true" ]; then
-            echo "Applying Terraform configuration..."
-            docker run --rm \
-              -v $PWD:/workspace \
-              -w /workspace \
-              hashicorp/terraform:${{ env.TERRAFORM_VERSION }} \
-              apply -auto-approve tfplan
-            
-            # Cleanup after test
-            sleep 60  # Let the VM boot
-            docker run --rm \
-              -v $PWD:/workspace \
-              -w /workspace \
-              hashicorp/terraform:${{ env.TERRAFORM_VERSION }} \
-              destroy -auto-approve
+            docker run --rm -v $PWD:/workspace -w /workspace hashicorp/terraform:${{ env.TERRAFORM_VERSION }} apply -auto-approve tfplan
+            sleep 60
+            docker run --rm -v $PWD:/workspace -w /workspace hashicorp/terraform:${{ env.TERRAFORM_VERSION }} destroy -auto-approve || true
           fi
-          
-          # Cleanup secrets
           rm -f secrets.auto.tfvars
 
   notify:
     name: Notify Results
-    runs-on: self-hosted
-    needs: [validate, build-packer, terraform-test]
+    runs-on: [self-hosted, proxmox]
+    needs: [build-packer, terraform-test]
     if: always()
     steps:
-      - name: Notify Success
-        if: needs.build-packer.result == 'success'
+      - name: Result
         run: |
-          echo "✅ Template build completed successfully!"
-          echo "Templates built: ${{ needs.validate.outputs.templates }}"
-          
-      - name: Notify Failure
-        if: needs.build-packer.result == 'failure'
-        run: |
-          echo "❌ Template build failed!"
-          echo "Check the build logs for details."
-          exit 1
+          if [ "${{ needs.build-packer.result }}" = "success" ]; then
+            echo "✅ Windows 2022 template build completed successfully!"
+          else
+            echo "❌ Windows 2022 template build failed."; exit 1

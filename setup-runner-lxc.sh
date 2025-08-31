@@ -2,6 +2,12 @@
 # GitHub Self-Hosted Runner setup for Ubuntu 22.04 LXC (Proxmox)
 # Supports running Docker inside a privileged LXC with nesting enabled.
 # Falls back to Podman (rootless) if Docker cannot run.
+#
+# This revision allows execution as root (common inside LXC) and will create a
+# dedicated non-root user (default: 'runner') automatically for the GitHub Actions runner.
+# You can override the username with:  ./setup-runner-lxc.sh --user espresso
+# It also self-detects if the script body was replaced by an HTML error page
+# (common when a download failed) and aborts with guidance.
 set -euo pipefail
 
 GREEN="\e[32m"; YELLOW="\e[33m"; RED="\e[31m"; BLUE="\e[34m"; NC="\e[0m"
@@ -10,10 +16,17 @@ warn(){ echo -e "${YELLOW}[WARN]${NC} $*"; }
 err(){ echo -e "${RED}[ERR ]${NC} $*"; }
 ok(){ echo -e "${GREEN}[ OK ]${NC} $*"; }
 
+# --- HTML / corruption guard ------------------------------------------------------
+if head -n1 "$0" | grep -qi '<!DOCTYPE html'; then
+  err "This script appears to be an HTML page (bad download)."
+  err "Re-download with: curl -L -o setup-runner-lxc.sh https://raw.githubusercontent.com/OWNER/REPO/main/setup-runner-lxc.sh"
+  exit 2
+fi
+
 # ---- 0. Pre-flight (LXC/Nesting) -------------------------------------------------
 log "Detecting LXC environment & nesting support"
 if grep -qa container=lxc /proc/1/environ 2>/dev/null || [ -f /run/.containerenv ]; then
-  ok "Running inside container (likely LXC)"
+  ok "Running inside container (LXC detected)"
 else
   warn "Not detected as LXC (continuing anyway)"
 fi
@@ -29,6 +42,41 @@ fi
 log "Updating apt indexes"
 apt-get update -y
 
+# --- Argument parsing -------------------------------------------------------------
+RUNNER_SYSUSER_DEFAULT="runner"
+RUNNER_SYSUSER="$RUNNER_SYSUSER_DEFAULT"
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -u|--user)
+      RUNNER_SYSUSER="$2"; shift 2;;
+    -h|--help)
+      echo "Usage: $0 [--user <username>]"; exit 0;;
+    *) echo "Unknown argument: $1"; exit 1;;
+  esac
+done
+
+log "Selected runner user: $RUNNER_SYSUSER"
+
+# --- User / privilege handling ----------------------------------------------------
+if [ "${EUID}" -eq 0 ]; then
+  if ! id -u "$RUNNER_SYSUSER" >/dev/null 2>&1; then
+    log "Creating dedicated user '$RUNNER_SYSUSER'"
+    useradd -m -s /bin/bash "$RUNNER_SYSUSER"
+  else
+    ok "User '$RUNNER_SYSUSER' already exists"
+  fi
+  SUDO_USER="$RUNNER_SYSUSER"
+  HOME_DIR="/home/$RUNNER_SYSUSER"
+else
+  if [ "$USER" != "$RUNNER_SYSUSER" ]; then
+    warn "Script not run as root; will use current user '$USER' instead of requested '$RUNNER_SYSUSER'"
+    RUNNER_SYSUSER="$USER"
+  fi
+  SUDO_USER="$USER"
+  HOME_DIR="$HOME"
+fi
+
 log "Installing base dependencies"
 DEBIAN_FRONTEND=noninteractive apt-get install -y curl ca-certificates gnupg lsb-release jq tar sudo git build-essential apt-transport-https software-properties-common uidmap fuse-overlayfs
 
@@ -36,14 +84,21 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y curl ca-certificates gnupg lsb
 install_docker(){
   log "Attempting Docker Engine installation"
   if command -v docker >/dev/null 2>&1; then ok "Docker already present"; return 0; fi
-  install -m 0755 -d /etc/apt/keyrings
-  curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-  chmod a+r /etc/apt/keyrings/docker.gpg
-  echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo $VERSION_CODENAME) stable" > /etc/apt/sources.list.d/docker.list
-  apt-get update -y || true
-  DEBIAN_FRONTEND=noninteractive apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin || return 1
-  systemctl enable --now docker || true
-  usermod -aG docker ${SUDO_USER:-$USER} || true
+  # Prefer upstream; fallback to Ubuntu docker.io if fails
+  if install -m 0755 -d /etc/apt/keyrings 2>/dev/null; then
+    if curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg 2>/dev/null; then
+      chmod a+r /etc/apt/keyrings/docker.gpg || true
+      echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo $VERSION_CODENAME) stable" > /etc/apt/sources.list.d/docker.list
+      apt-get update -y || true
+      DEBIAN_FRONTEND=noninteractive apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin || \
+        DEBIAN_FRONTEND=noninteractive apt-get install -y docker.io || return 1
+    else
+      warn "Falling back to docker.io (GPG fetch failed)"
+      DEBIAN_FRONTEND=noninteractive apt-get install -y docker.io || return 1
+    fi
+  fi
+  systemctl enable --now docker 2>/dev/null || true
+  usermod -aG docker "${SUDO_USER}" || true
   ok "Docker installation attempted"
 }
 
@@ -79,6 +134,7 @@ ${ENGINE} pull docker.io/hashicorp/terraform:1.9.0 || ${ENGINE} pull hashicorp/t
 # ---- 4. Runner download ----------------------------------------------------------
 RUNNER_BASE="/opt/github-runner"
 mkdir -p "$RUNNER_BASE"
+chown -R "$SUDO_USER:$SUDO_USER" "$RUNNER_BASE"
 cd "$RUNNER_BASE"
 
 if [ ! -f latest.txt ]; then
@@ -108,12 +164,16 @@ if [ $# -lt 3 ]; then
 fi
 REPO_URL="$1"; TOKEN="$2"; LABELS="$3"; NAME="${4:-lxc-runner-$(hostname)}"
 cd /opt/github-runner
-./config.sh --url "$REPO_URL" --token "$TOKEN" --labels "$LABELS" --name "$NAME" --unattended --replace || exit 1
+RUNNER_USER_PLACEHOLDER="__RUNNER_USER__"
+su - "${RUNNER_USER_PLACEHOLDER}" -c "cd /opt/github-runner && ./config.sh --url '$REPO_URL' --token '$TOKEN' --labels '$LABELS' --name '$NAME' --unattended --replace" || exit 1
 ./svc.sh install || true
 ./svc.sh start
 EOF
 chmod +x /usr/local/bin/register-runner.sh
 ok "Helper script /usr/local/bin/register-runner.sh created"
+
+# Replace placeholder with actual user
+sed -i "s/__RUNNER_USER__/${RUNNER_SYSUSER}/g" /usr/local/bin/register-runner.sh
 
 # ---- 6. Summary ------------------------------------------------------------------
 cat <<SUMMARY
@@ -141,6 +201,6 @@ Troubleshooting Docker in LXC:
   - Restart container: pct restart <CTID>
 
 To reconfigure runner:
-  cd /opt/github-runner && sudo ./svc.sh stop && sudo ./config.sh remove && sudo ./svc.sh uninstall
+  cd /opt/github-runner && sudo ./svc.sh stop && sudo -u runner ./config.sh remove && sudo ./svc.sh uninstall
 
 SUMMARY
