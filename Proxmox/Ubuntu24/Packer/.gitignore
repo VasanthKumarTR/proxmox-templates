@@ -1,6 +1,0 @@
-# Exclude secrets file
-secrets.pkrvars.hcl
-
-# Packer cache directories
-packer_cache/
-output-*/ 

@@ -115,10 +115,9 @@ jobs:
         run: |
           cd Proxmox/Windows2022/Terraform
           cat > secrets.auto.tfvars << EOF
-          proxmox_url = "$PROXMOX_URL"
-          proxmox_username = "$PROXMOX_USERNAME"
-          proxmox_token = "$PROXMOX_TOKEN"
-          proxmox_node = "$PROXMOX_NODE"
+          proxmox_api_url = "$PROXMOX_URL"
+          proxmox_api_token_secret = "PVEAPIToken=$PROXMOX_USERNAME=$PROXMOX_TOKEN"
+          target_node = "$PROXMOX_NODE"
           EOF
           docker run --rm -v $PWD:/workspace -w /workspace hashicorp/terraform:${{ env.TERRAFORM_VERSION }} init
           docker run --rm -v $PWD:/workspace -w /workspace hashicorp/terraform:${{ env.TERRAFORM_VERSION }} plan -out=tfplan
@@ -141,3 +140,4 @@ jobs:
             echo "✅ Windows 2022 template build completed successfully!"
           else
             echo "❌ Windows 2022 template build failed."; exit 1
+          fi

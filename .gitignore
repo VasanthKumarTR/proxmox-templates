@@ -2,8 +2,6 @@
 **/.terraform/*
 *.tfstate
 *.tfstate.*
-*.tfvars
-*.tfvars.json
 crash.log
 crash.*.log
 override.tf
@@ -21,22 +19,28 @@ packer_cache/
 output-*/
 *.log
 
-# Build artifacts and logs
+# Build artifacts
 build-artifacts/
 *.iso
 *.qcow2
 
-# Environment files
+# Secrets and sensitive files
+secrets.auto.tfvars
+*.tfvars
+*.tfvars.json
 .env
 .envrc
-
-# SSH keys
 *.pem
 *.key
 id_rsa*
 
 # Operating system files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
 
 # Editor files
@@ -53,4 +57,7 @@ actions-runner*/
 # Temporary files
 *.tmp
 *.bak
+*.temp
 .backup/
+temp/
+tmp/

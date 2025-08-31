@@ -1,6 +1,0 @@
-# Don't ignore regular tfvars
-!terraform.tfvars
-!*.tfvars.example
-
-# But do ignore secrets
-secrets.tfvars 
