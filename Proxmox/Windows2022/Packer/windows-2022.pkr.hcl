@@ -15,13 +15,13 @@ packer {
 variable "proxmox_url" {
   type        = string
   description = "The Proxmox API URL"
-  default     = "https://192.168.1.95:8006/api2/json"
+  default     = "https://172.16.11.1:8006/api2/json"
 }
 
 variable "proxmox_username" {
   type        = string
   description = "The Proxmox username for API operations"
-  default     = "root@pam!terraform"
+  default     = "root@pam"
 }
 
 variable "proxmox_token" {
@@ -33,7 +33,7 @@ variable "proxmox_token" {
 variable "proxmox_node" {
   type        = string
   description = "The Proxmox node to build on"
-  default     = "proxmox"
+  default     = "aqua"
 }
 
 # VM Identification
