@@ -1,0 +1,24 @@
+name: Test Proxmox Discovery
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Test Discovery (No Labels)
+    runs-on: self-hosted
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Simple Test
+        run: |
+          echo "✅ Runner is working!"
+          echo "Current directory: $(pwd)"
+          echo "Available commands:"
+          which curl || echo "curl not found"
+          which jq || echo "jq not found"
+          echo "Testing network connectivity..."
+          ping -c 1 172.16.11.1 || echo "172.16.11.1 not reachable"
+          ping -c 1 172.16.11.2 || echo "172.16.11.2 not reachable"  
+          ping -c 1 172.16.11.3 || echo "172.16.11.3 not reachable"
