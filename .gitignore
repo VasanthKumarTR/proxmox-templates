@@ -1,59 +1,56 @@
-# Local .terraform directories
+# Terraform
 **/.terraform/*
-
-# .tfstate files
 *.tfstate
 *.tfstate.*
-
-# Crash log files
-crash.log
-crash.*.log
-
-# Exclude all .tfvars files, which are likely to contain sensitive data
 *.tfvars
 *.tfvars.json
-
-# Ignore override files as they are usually used for local dev
+crash.log
+crash.*.log
 override.tf
 override.tf.json
 *_override.tf
 *_override.tf.json
-
-# Ignore CLI configuration files
 .terraformrc
 terraform.rc
+tfplan
 
-# Ignore Packer variables files which might contain sensitive data
+# Packer
 *.auto.pkrvars.hcl
-
-# Ignore Packer build artifacts
+secrets.pkrvars.hcl
 packer_cache/
 output-*/
+*.log
 
-# Ignore local environment files
+# Build artifacts and logs
+build-artifacts/
+*.iso
+*.qcow2
+
+# Environment files
 .env
 .envrc
 
-# Ignore SSH keys
+# SSH keys
 *.pem
 *.key
-id_rsa
-id_rsa.pub
+id_rsa*
 
-# Ignore logs
-*.log
-
-# macOS files
+# Operating system files
 .DS_Store
+Thumbs.db
 
 # Editor files
 .vscode/
 .idea/
 *.swp
 *.swo
+*~
 
-# Exclude secrets file
-secrets.pkrvars.hcl
-screenshots/
-Proxmox/Terraform/tfplan
-!vSphere/Terraform/vars.auto.tfvars
+# GitHub runner
+github-runner/
+actions-runner*/
+
+# Temporary files
+*.tmp
+*.bak
+.backup/
