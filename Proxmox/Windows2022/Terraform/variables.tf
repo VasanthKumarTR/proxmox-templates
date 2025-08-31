@@ -29,7 +29,7 @@ variable "network_bridge" {
 variable "gateway" {
   description = "Network gateway IP address"
   type        = string
-  default     = "192.168.1.1"
+  default     = "172.16.0.1"
 }
 
 variable "dns_servers" {
@@ -41,7 +41,7 @@ variable "dns_servers" {
 variable "dns_domain" {
   description = "DNS domain name"
   type        = string
-  default     = "home"
+  default     = "local"
 }
 
 variable "vm_password" {
@@ -49,6 +49,18 @@ variable "vm_password" {
   type        = string
   sensitive   = true
   default     = "P@ssw0rd123!"
+}
+
+variable "template_name" {
+  description = "Name of the Proxmox template to clone from"
+  type        = string
+  default     = "windows-server-2022-template"
+}
+
+variable "vm_id_start" {
+  description = "Starting VM ID for created VMs (will increment for each VM)"
+  type        = number
+  default     = 9200
 }
 
 variable "vms" {
@@ -61,13 +73,13 @@ variable "vms" {
   }))
   default = {
     "win2022-server1" = {
-      ip_address = "192.168.1.98/24"
+      ip_address = "172.16.11.100/24"
       cores      = 4
       memory     = 4096
       disk_size  = "80"
     }
     "win2022-server2" = {
-      ip_address = "192.168.1.99/24"
+      ip_address = "172.16.11.101/24"
       cores      = 2
       memory     = 4096
       disk_size  = "60"
