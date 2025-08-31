@@ -5,30 +5,318 @@ on:
 
 jobs:
   discover:
-    name: Discover Proxmox Node Names
+    name: Comprehensive Proxmox Discovery
     runs-on: self-hosted
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         
-      - name: Run Node Discovery
+      - name: Environment Check
         run: |
-          chmod +x discover-nodes-runner.sh
-          ./discover-nodes-runner.sh
+          echo "🔧 ENVIRONMENT CHECK"
+          echo "==================="
+          echo "Runner OS: $(uname -a)"
+          echo "Current directory: $(pwd)"
+          echo "Available tools:"
+          which curl && curl --version | head -1 || echo "❌ curl not found"
+          which jq && jq --version || echo "❌ jq not found"
+          which docker && docker --version || echo "❌ docker not found"
+          echo ""
+        
+      - name: Network Connectivity Test
+        run: |
+          echo "🌐 NETWORK CONNECTIVITY TEST"
+          echo "============================="
           
-      - name: Test with Authentication (if token available)
+          PROXMOX_IPS=("172.16.11.1" "172.16.11.2" "172.16.11.3")
+          REACHABLE_IPS=()
+          
+          for ip in "${PROXMOX_IPS[@]}"; do
+            echo "Testing $ip..."
+            if ping -c 2 -W 3 "$ip" > /dev/null 2>&1; then
+              echo "✅ $ip - Network reachable"
+              REACHABLE_IPS+=("$ip")
+            else
+              echo "❌ $ip - Network unreachable"
+            fi
+          done
+          
+          echo ""
+          echo "📊 SUMMARY: ${#REACHABLE_IPS[@]}/3 nodes network reachable"
+          if [ ${#REACHABLE_IPS[@]} -eq 0 ]; then
+            echo "⚠️  No Proxmox nodes reachable - check network configuration"
+          fi
+          
+          # Export for next steps
+          echo "REACHABLE_IPS=${REACHABLE_IPS[*]}" >> $GITHUB_ENV
+          echo ""
+
+      - name: Proxmox API Connectivity Test
+        run: |
+          echo "🔌 PROXMOX API CONNECTIVITY TEST"
+          echo "================================="
+          
+          PROXMOX_IPS=($REACHABLE_IPS)
+          API_WORKING_IPS=()
+          
+          for ip in "${PROXMOX_IPS[@]}"; do
+            echo "Testing Proxmox API on $ip:8006..."
+            PROXMOX_URL="https://$ip:8006/api2/json"
+            
+            if curl -k -m 10 -s "$PROXMOX_URL/version" > /dev/null 2>&1; then
+              echo "✅ $ip - Proxmox API responding"
+              API_WORKING_IPS+=("$ip")
+              
+              # Get version info
+              VERSION=$(curl -k -m 10 -s "$PROXMOX_URL/version" | jq -r '.data.version // "unknown"' 2>/dev/null)
+              echo "   Version: $VERSION"
+            else
+              echo "❌ $ip - Proxmox API not responding"
+            fi
+          done
+          
+          echo ""
+          echo "📊 SUMMARY: ${#API_WORKING_IPS[@]}/${#PROXMOX_IPS[@]} reachable nodes have working API"
+          
+          # Export for next steps
+          echo "API_WORKING_IPS=${API_WORKING_IPS[*]}" >> $GITHUB_ENV
+          echo ""
+
+      - name: Node Discovery with Authentication
         env:
           PROXMOX_URL: ${{ secrets.PROXMOX_URL }}
           PROXMOX_TOKEN: ${{ secrets.PROXMOX_TOKEN }}
         run: |
-          if [ -n "$PROXMOX_TOKEN" ]; then
-            echo "🔐 Testing with authentication..."
-            for ip in 172.16.11.1 172.16.11.2 172.16.11.3; do
-              echo "Testing $ip..."
-              curl -k -s -H "Authorization: PVEAPIToken=$PROXMOX_TOKEN" \
-                "https://$ip:8006/api2/json/nodes" | jq -r '.data[]?.node // "No nodes or auth failed"' || true
+          echo "🔐 AUTHENTICATED NODE DISCOVERY"
+          echo "==============================="
+          
+          if [ -z "$PROXMOX_TOKEN" ]; then
+            echo "❌ PROXMOX_TOKEN secret not configured"
+            echo "   Please set GitHub secret: PROXMOX_TOKEN"
+            exit 0
+          fi
+          
+          if [ -z "$PROXMOX_URL" ]; then
+            echo "❌ PROXMOX_URL secret not configured"
+            echo "   Please set GitHub secret: PROXMOX_URL"
+            exit 0
+          fi
+          
+          echo "Testing authentication with configured URL: $PROXMOX_URL"
+          
+          # Extract IP from URL
+          CONFIGURED_IP=$(echo "$PROXMOX_URL" | grep -oP '(?<=://)[^:]+')
+          echo "Configured IP: $CONFIGURED_IP"
+          
+          # Test authentication
+          if curl -k -m 15 -s -H "Authorization: PVEAPIToken=$PROXMOX_TOKEN" \
+             "$PROXMOX_URL/version" | jq -e '.data' > /dev/null 2>&1; then
+            echo "✅ Authentication successful"
+            
+            # Get cluster nodes
+            echo ""
+            echo "📋 DISCOVERED NODES:"
+            NODES=$(curl -k -m 15 -s -H "Authorization: PVEAPIToken=$PROXMOX_TOKEN" \
+                   "$PROXMOX_URL/nodes" | jq -r '.data[]? | "\(.node) (Status: \(.status), CPU: \(.cpu*100|floor)%, Memory: \(.mem/1024/1024/1024|floor)GB/\(.maxmem/1024/1024/1024|floor)GB)"' 2>/dev/null)
+            
+            if [ -n "$NODES" ]; then
+              echo "$NODES" | while read -r line; do
+                echo "   ✅ $line"
+              done
+              
+              # Extract just node names for later use
+              NODE_NAMES=$(curl -k -m 15 -s -H "Authorization: PVEAPIToken=$PROXMOX_TOKEN" \
+                          "$PROXMOX_URL/nodes" | jq -r '.data[]?.node' 2>/dev/null | tr '\n' ' ')
               echo ""
-            done
+              echo "💡 Available node names: $NODE_NAMES"
+              echo "NODE_NAMES=$NODE_NAMES" >> $GITHUB_ENV
+            else
+              echo "   ❌ No nodes found or permission denied"
+            fi
           else
-            echo "No PROXMOX_TOKEN set, skipping authenticated test"
+            echo "❌ Authentication failed"
+            echo "   Check PROXMOX_TOKEN format: should be the secret part only"
+            echo "   Token should have sufficient privileges"
+          fi
+          echo ""
+
+      - name: ISO Storage Check
+        env:
+          PROXMOX_URL: ${{ secrets.PROXMOX_URL }}
+          PROXMOX_TOKEN: ${{ secrets.PROXMOX_TOKEN }}
+        run: |
+          echo "📀 ISO STORAGE AVAILABILITY CHECK"
+          echo "=================================="
+          
+          if [ -z "$PROXMOX_TOKEN" ] || [ -z "$NODE_NAMES" ]; then
+            echo "⚠️  Skipping ISO check - authentication failed or no nodes discovered"
+            exit 0
+          fi
+          
+          # Check each discovered node for ISO storage
+          for node in $NODE_NAMES; do
+            echo "Checking ISO storage on node: $node"
+            
+            # Get storage list
+            STORAGES=$(curl -k -m 15 -s -H "Authorization: PVEAPIToken=$PROXMOX_TOKEN" \
+                      "$PROXMOX_URL/nodes/$node/storage" | \
+                      jq -r '.data[]? | select(.content | contains("iso")) | .storage' 2>/dev/null)
+            
+            if [ -n "$STORAGES" ]; then
+              echo "✅ ISO storage available on $node:"
+              for storage in $STORAGES; do
+                echo "   📦 Storage: $storage"
+                
+                # Check for required ISOs
+                ISOS=$(curl -k -m 15 -s -H "Authorization: PVEAPIToken=$PROXMOX_TOKEN" \
+                      "$PROXMOX_URL/nodes/$node/storage/$storage/content" | \
+                      jq -r '.data[]? | select(.content=="iso") | .volid' 2>/dev/null)
+                
+                if [ -n "$ISOS" ]; then
+                  echo "   Available ISOs:"
+                  echo "$ISOS" | while read -r iso; do
+                    echo "     💿 $iso"
+                  done
+                  
+                  # Check for specific required ISOs
+                  echo ""
+                  echo "   🎯 REQUIRED ISO CHECK:"
+                  if echo "$ISOS" | grep -q "windows.*server.*2022"; then
+                    echo "     ✅ Windows Server 2022 ISO found"
+                  else
+                    echo "     ❌ Windows Server 2022 ISO missing"
+                    echo "        Expected: windows server 2022 ISO file"
+                  fi
+                  
+                  if echo "$ISOS" | grep -q "virtio-win"; then
+                    echo "     ✅ VirtIO drivers ISO found"
+                  else
+                    echo "     ❌ VirtIO drivers ISO missing"
+                    echo "        Expected: virtio-win-*.iso"
+                  fi
+                else
+                  echo "   ❌ No ISOs found in $storage"
+                fi
+              done
+            else
+              echo "❌ No ISO storage found on $node"
+            fi
+            echo ""
+          done
+
+      - name: VM ID Availability Check
+        env:
+          PROXMOX_URL: ${{ secrets.PROXMOX_URL }}
+          PROXMOX_TOKEN: ${{ secrets.PROXMOX_TOKEN }}
+        run: |
+          echo "🆔 VM ID AVAILABILITY CHECK"
+          echo "==========================="
+          
+          if [ -z "$PROXMOX_TOKEN" ] || [ -z "$NODE_NAMES" ]; then
+            echo "⚠️  Skipping VM ID check - authentication failed or no nodes discovered"
+            exit 0
+          fi
+          
+          TARGET_VM_ID="9100"
+          echo "Checking if VM ID $TARGET_VM_ID is available..."
+          
+          for node in $NODE_NAMES; do
+            echo "Checking node: $node"
+            
+            VM_EXISTS=$(curl -k -m 15 -s -H "Authorization: PVEAPIToken=$PROXMOX_TOKEN" \
+                       "$PROXMOX_URL/nodes/$node/qemu/$TARGET_VM_ID" 2>/dev/null | \
+                       jq -e '.data' > /dev/null 2>&1 && echo "exists" || echo "available")
+            
+            if [ "$VM_EXISTS" = "exists" ]; then
+              echo "   ⚠️  VM ID $TARGET_VM_ID already exists on $node"
+              
+              # Get VM details
+              VM_INFO=$(curl -k -m 15 -s -H "Authorization: PVEAPIToken=$PROXMOX_TOKEN" \
+                       "$PROXMOX_URL/nodes/$node/qemu/$TARGET_VM_ID/config" | \
+                       jq -r '.data | "Name: \(.name // "unnamed"), Template: \(.template // false)"' 2>/dev/null)
+              echo "      Details: $VM_INFO"
+              echo "      Use force_rebuild=true to overwrite"
+            else
+              echo "   ✅ VM ID $TARGET_VM_ID is available on $node"
+            fi
+          done
+          echo ""
+
+      - name: Storage Space Check
+        env:
+          PROXMOX_URL: ${{ secrets.PROXMOX_URL }}
+          PROXMOX_TOKEN: ${{ secrets.PROXMOX_TOKEN }}
+        run: |
+          echo "💾 STORAGE SPACE CHECK"
+          echo "======================"
+          
+          if [ -z "$PROXMOX_TOKEN" ] || [ -z "$NODE_NAMES" ]; then
+            echo "⚠️  Skipping storage check - authentication failed or no nodes discovered"
+            exit 0
+          fi
+          
+          for node in $NODE_NAMES; do
+            echo "Storage on node: $node"
+            
+            STORAGES=$(curl -k -m 15 -s -H "Authorization: PVEAPIToken=$PROXMOX_TOKEN" \
+                      "$PROXMOX_URL/nodes/$node/storage" | \
+                      jq -r '.data[]? | select(.content | contains("images")) | .storage' 2>/dev/null)
+            
+            for storage in $STORAGES; do
+              STORAGE_INFO=$(curl -k -m 15 -s -H "Authorization: PVEAPIToken=$PROXMOX_TOKEN" \
+                           "$PROXMOX_URL/nodes/$node/storage/$storage/status" | \
+                           jq -r '.data | "\(.avail/1024/1024/1024|floor)GB available / \(.total/1024/1024/1024|floor)GB total (\(.used/1024/1024/1024|floor)GB used)"' 2>/dev/null)
+              
+              if [ -n "$STORAGE_INFO" ]; then
+                echo "   📦 $storage: $STORAGE_INFO"
+                
+                AVAIL_GB=$(curl -k -m 15 -s -H "Authorization: PVEAPIToken=$PROXMOX_TOKEN" \
+                          "$PROXMOX_URL/nodes/$node/storage/$storage/status" | \
+                          jq -r '.data.avail/1024/1024/1024|floor' 2>/dev/null)
+                
+                if [ "$AVAIL_GB" -gt 100 ]; then
+                  echo "      ✅ Sufficient space for template build"
+                else
+                  echo "      ⚠️  Low disk space - recommend 100GB+ for Windows template"
+                fi
+              fi
+            done
+            echo ""
+          done
+
+      - name: Final Summary & Recommendations
+        run: |
+          echo "🎯 FINAL SUMMARY & RECOMMENDATIONS"
+          echo "==================================="
+          
+          echo "Network Status:"
+          if [ -n "$REACHABLE_IPS" ]; then
+            echo "✅ Reachable Proxmox nodes: $REACHABLE_IPS"
+          else
+            echo "❌ No Proxmox nodes reachable"
+          fi
+          
+          if [ -n "$API_WORKING_IPS" ]; then
+            echo "✅ Working Proxmox APIs: $API_WORKING_IPS"
+          else
+            echo "❌ No working Proxmox APIs"
+          fi
+          
+          if [ -n "$NODE_NAMES" ]; then
+            echo "✅ Discovered nodes: $NODE_NAMES"
+            echo ""
+            echo "🚀 READY TO BUILD!"
+            echo "Next steps:"
+            echo "1. Update GitHub secrets if needed:"
+            echo "   - PROXMOX_URL should point to a working API"
+            echo "   - PROXMOX_NODE should be one of: $NODE_NAMES"
+            echo "2. Upload required ISOs if missing"
+            echo "3. Run 'Build Windows 2022 Proxmox Template' workflow"
+          else
+            echo "❌ No nodes discovered"
+            echo ""
+            echo "🔧 TROUBLESHOOTING NEEDED:"
+            echo "1. Check network connectivity to Proxmox nodes"
+            echo "2. Verify GitHub secrets: PROXMOX_URL, PROXMOX_TOKEN"
+            echo "3. Ensure API token has sufficient privileges"
           fi
