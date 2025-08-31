@@ -52,6 +52,11 @@ jobs:
           if ! docker ps >/dev/null 2>&1; then
             sudo chmod 666 /var/run/docker.sock || true
           fi
+          # Initialize Packer to install required plugins
+          docker run --rm -v $PWD:/workspace -w /workspace/Proxmox/Windows2022/Packer \
+            hashicorp/packer:${{ env.PACKER_VERSION }} \
+            init windows-2022.pkr.hcl
+          # Validate the template
           docker run --rm -v $PWD:/workspace -w /workspace/Proxmox/Windows2022/Packer \
             hashicorp/packer:${{ env.PACKER_VERSION }} \
             validate -var-file=variables.pkrvars.hcl windows-2022.pkr.hcl
@@ -87,6 +92,13 @@ jobs:
           proxmox_token = "$PROXMOX_TOKEN"
           proxmox_node = "$PROXMOX_NODE"
           EOF
+          # Initialize Packer to install required plugins
+          docker run --rm \
+            -v $PWD:/workspace \
+            -w /workspace \
+            hashicorp/packer:${{ env.PACKER_VERSION }} \
+            init windows-2022.pkr.hcl
+          # Build the template
           docker run --rm \
             -v $PWD:/workspace \
             -w /workspace \
