@@ -52,14 +52,10 @@ jobs:
           if ! docker ps >/dev/null 2>&1; then
             sudo chmod 666 /var/run/docker.sock || true
           fi
-          # Initialize Packer to install required plugins
+          # Initialize and validate in the same container to preserve plugin installation
           docker run --rm -v $PWD:/workspace -w /workspace/Proxmox/Windows2022/Packer \
             hashicorp/packer:${{ env.PACKER_VERSION }} \
-            init windows-2022.pkr.hcl
-          # Validate the template
-          docker run --rm -v $PWD:/workspace -w /workspace/Proxmox/Windows2022/Packer \
-            hashicorp/packer:${{ env.PACKER_VERSION }} \
-            validate -var-file=variables.pkrvars.hcl windows-2022.pkr.hcl
+            sh -c "packer init windows-2022.pkr.hcl && packer validate -var-file=variables.pkrvars.hcl windows-2022.pkr.hcl"
 
   build-packer:
     name: Build Windows 2022 Template
@@ -92,22 +88,13 @@ jobs:
           proxmox_token = "$PROXMOX_TOKEN"
           proxmox_node = "$PROXMOX_NODE"
           EOF
-          # Initialize Packer to install required plugins
-          docker run --rm \
-            -v $PWD:/workspace \
-            -w /workspace \
-            hashicorp/packer:${{ env.PACKER_VERSION }} \
-            init windows-2022.pkr.hcl
-          # Build the template
+          # Initialize and build in the same container to preserve plugin installation
           docker run --rm \
             -v $PWD:/workspace \
             -w /workspace \
             --network host \
             hashicorp/packer:${{ env.PACKER_VERSION }} \
-            build \
-            -var-file=variables.pkrvars.hcl \
-            -var-file=secrets.pkrvars.hcl \
-            windows-2022.pkr.hcl
+            sh -c "packer init windows-2022.pkr.hcl && packer build -var-file=variables.pkrvars.hcl -var-file=secrets.pkrvars.hcl windows-2022.pkr.hcl"
           rm -f secrets.pkrvars.hcl
 
       - name: Upload Build Logs
