@@ -141,7 +141,7 @@ source "proxmox-iso" "windows-2022" {
   machine    = "q35"
   cores      = "4"
   memory     = "4096"
-  
+
   # EFI settings
   efi_config {
     efi_storage_pool  = "local-lvm"

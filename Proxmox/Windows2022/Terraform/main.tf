@@ -34,7 +34,7 @@ resource "proxmox_virtual_environment_vm" "windows_vm" {
 
   # UEFI/EFI configuration for Windows
   bios = "ovmf"
-  
+
   efi_disk {
     datastore_id      = var.disk_storage
     file_format       = "raw"
